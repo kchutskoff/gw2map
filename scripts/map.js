@@ -1,5 +1,7 @@
 $(document).ready(function(){
 
+// HELPER FUNCTIONS
+
 	function distanceFromSegment(p, a, b){
 	    var dx = b.x - a.x;
 	    var dy = b.y - a.y;
@@ -17,6 +19,8 @@ $(document).ready(function(){
 	    dy = a.y + r * dy;
 	    return Math.sqrt((p.x - dx) * (p.x - dx) + (p.y - dy) * (p.y - dy));
 	}
+
+// CONVERSION FUNCTIONS
 
 	function fromLatLngToPoint(ll, max_zoom){
 		var point = new google.maps.Point(0, 0),
@@ -40,6 +44,10 @@ $(document).ready(function(){
 		return new google.maps.LatLng(lat, lng);
 	}
 
+// Map Declaration
+
+	var mapSize = 32768;
+
 	var gmap = new google.maps.Map(document.getElementById("gw2map") , {
 		zoom: 8,
 		minZoom: 5,
@@ -53,11 +61,13 @@ $(document).ready(function(){
 		}
 	});
 
+// For mouse-over markers
+
 	var pixelOverlay = new google.maps.OverlayView();
 	pixelOverlay.draw = function(){};
 	pixelOverlay.setMap(gmap);
 
-	var mapSize = 32768;
+// functions to drive the map
 
 	var max_zoom = function(){
 		return gmap.getMapTypeId() === "1" ? 11 : 10
@@ -86,6 +96,8 @@ $(document).ready(function(){
 		return "https://tiles.guildwars2.com/"+gmap.getMapTypeId()+"/1/"+actualZ+"/"+actualX+"/"+actualY+".jpg";
 	};
 
+// defining map settings
+
 	var tile_size = new google.maps.Size(256,256);
 
 	var tyria = new google.maps.ImageMapType({
@@ -107,14 +119,9 @@ $(document).ready(function(){
 	gmap.mapTypes.set("1",tyria);
 	gmap.mapTypes.set("2",mists);
 
+	// centering map at start
+
 	gmap.setCenter(p2ll(new google.maps.Point(mapSize/2, mapSize/2)));
-
-	google.maps.event.addListener(gmap, "mousemove", function(e){
-		var p = ll2p(e.latLng);
-
-		//console.log("[" + p.x + ", " + p.y + "]");
-	});
-
 
 	var exportDiv = document.createElement('div');
 	exportDiv.style.padding = '5px';
@@ -148,6 +155,9 @@ $(document).ready(function(){
 		var ne = ll2p(bounds.getNorthEast());
 		var sw = ll2p(bounds.getSouthWest());
 		var pos = ll2p(gmap.getCenter());
+		//console.log("center: " + pos.x + ", " + pos.y);
+		//console.log("NE: " + ne.x + ", " + ne.y);
+		//console.log("SW: " + sw.x + ", " + sw.y);
 
 		var force = false;
 
@@ -178,14 +188,43 @@ $(document).ready(function(){
 		}
 
 		if(force == true){
+			//console.log("set center: " + pos.x + ", " + pos.y);
 			gmap.setCenter(p2ll(pos));
+			
 		}
 
 	}
 
 	google.maps.event.addListener(gmap, 'center_changed', boundCheck);
+/*
+	google.maps.event.addListener(gmap, 'bounds_changed', function(){
+		console.log("bounds_changed");
+		var ne = ll2p(gmap.getBounds().getNorthEast());
+		var sw = ll2p(gmap.getBounds().getSouthWest());
+		console.log(ne.x + ", " + ne.y + "   " + sw.x + ", " + sw.y);
+	});
 
+	google.maps.event.addListener(gmap, 'center_changed', function(){
+		console.log("center_changed");
+		var ne = ll2p(gmap.getBounds().getNorthEast());
+		var sw = ll2p(gmap.getBounds().getSouthWest());
+		console.log(ne.x + ", " + ne.y + "   " + sw.x + ", " + sw.y);
+	});
 
+	google.maps.event.addListener(gmap, 'dragstart', function(){
+		console.log("dragstart");
+		var ne = ll2p(gmap.getBounds().getNorthEast());
+		var sw = ll2p(gmap.getBounds().getSouthWest());
+		console.log(ne.x + ", " + ne.y + "   " + sw.x + ", " + sw.y);
+	});
+
+	google.maps.event.addListener(gmap, 'dragend', function(){
+		console.log("dragend");
+		var ne = ll2p(gmap.getBounds().getNorthEast());
+		var sw = ll2p(gmap.getBounds().getSouthWest());
+		console.log(ne.x + ", " + ne.y + "   " + sw.x + ", " + sw.y);
+	});
+*/
 	var allPaths = new Array();
 
 	// Setup the click event listeners: simply set the map to
@@ -209,6 +248,14 @@ $(document).ready(function(){
 	gmap.controls[google.maps.ControlPosition.TOP_RIGHT].push(exportDiv);
 			
 	var editPath = null;
+
+	function PolyPath(map){
+		var that = this;
+		this.polyLines = new Array();
+		this.polyLinesType = new Array();
+		this.edit = false;
+		this.map = map
+	};
 
 	PolyPath.prototype.polyEdit = {
 	    strokeColor: '#0B0',
@@ -249,178 +296,28 @@ $(document).ready(function(){
 	    icons: [],
 	};
 
-	PolyPath.prototype.iconNormal = {
-		path: google.maps.SymbolPath.CIRCLE,
-		scale: 6,
-		strokeWeight: 1,
-		strokeColor: '#FFF',
-		fillColor: '#999',
-		fillOpacity: 1.0
-		//anchor: new google.maps.Point(12,12)
-	};
+	PolyPath.prototype.InsertLatLng = function(LatLng, index, type){
+		index = typeof index != 'undefined' ? index : this.polyLines.length;
+		type = typeof type != 'undefined' ? type : 0;
+		
 
-	PolyPath.prototype.iconHover = {
-		path: google.maps.SymbolPath.CIRCLE,
-		scale: 6,
-		strokeWeight: 1,
-		strokeColor: '#FFF',
-		fillColor: '#CCC',
-		fillOpacity: 1.0
-		//anchor: new google.maps.Point(12,12)
-	};
-
-	PolyPath.prototype.InsertLatLng = function(LatLng, hovered, index){
-		var path = this.polyLine.getPath();
-		var that = this;
-		index = typeof index != 'undefined' ? index : path.getLength();
-		path.insertAt(index, LatLng);
-
-		var marker = new google.maps.Marker({
-			position: LatLng,
-			draggable: true,
-			map: this.map,
-			icon: this.iconHover,
-		});
-
-		if(!hovered){
-			marker.setIcon(this.iconNormal);
-		}
-
-		this.polyMarkers.splice(index, 0, marker);
-
-		google.maps.event.addListener(marker, "drag", function(e){
-			var path = that.polyLine.getPath();
-			path.insertAt(that.polyMarkers.indexOf(marker), e.latLng);
-			path.removeAt(that.polyMarkers.indexOf(marker) + 1);
-		});
-
-		google.maps.event.addListener(marker, "click", function(e){
-			//if(marker == that.polyMarkers[that.polyMarkers.length-1]){
-			that.SetActive(false);
-			editPath = null;
-			//}
-		});
-
-		google.maps.event.addListener(marker, "rightclick", function(e){
-			var path = that.polyLine.getPath();
-			var index = that.polyMarkers.indexOf(marker);
-			path.removeAt(index);
-			marker.setMap(null);
-			that.polyMarkers.splice(index, 1);
-		});
-
-		google.maps.event.addListener(marker, "mouseover", function(e){
-			marker.setIcon(that.iconHover);
-		});
-		google.maps.event.addListener(marker, "mouseout", function(e){
-			marker.setIcon(that.iconNormal);
-		});
 	};
 
 	PolyPath.prototype.SetActive = function(bool){
-		this.edit = bool;
-		if(this.polyMarkers.length < 2){
-			if(bool == false){
-				allPaths.splice(allPaths.indexOf(this), 1);
-				this.polyLine.setMap(null);
-				for(var i = 0; i < this.polyMarkers.length; ++i){
-					this.polyMarkers[i].setMap(null);
-				}
-				polyMarkers = null;
-				polyLine = null;
-			}
-		}else{
-			for(var i = 0; i < this.polyMarkers.length; ++i){
-				this.polyMarkers[i].setVisible(bool);
-				this.polyMarkers[i].setIcon(this.iconNormal);
-			}
-			if(bool == true)
-			{
-				this.polyLine.setOptions(this.polyEdit);
-			}else{
-				this.polyLine.setOptions(this.polyDone);
-			}
-		}
 	};
 
 	PolyPath.prototype.setVisible = function(bool){
 		this.SetActive(false);
-		this.polyLine.setVisible(bool);
+		for (var i = this.polyLines.length - 1; i >= 0; i--) {
+			this.polyLines[i].setVisible(bool);
+		};
 	}
 
-	PolyPath.prototype.ToggleUnderground = function(pos){
-		if(pos > 0 && pos < this.polyMarkers.length){
-			var test = new google.maps.Polyline(this.polyUnderground);
-			test.setMap(this.map);
-			test.getPath().push(this.polyLine.getPath().getAt(pos-1));
-			test.getPath().push(this.polyLine.getPath().getAt(pos));
-		}
+	PolyPath.prototype.ToggleUnderground = function(index){
 	}
 
 
-	function PolyPath(map){
-		var that = this;
-		this.polyLine = new google.maps.Polyline(this.polyEdit);
-		this.polyLine.setMap(map);
-		this.polyMarkers = new Array();
-		this.edit = true;
-		this.map = map
-		this.undergrounds = new Array();
-
-		google.maps.event.addListener(this.polyLine, "click", function(e){
-			if(that.edit == true){
-				var pixel = ll2p(e.latLng);
-				var path = that.polyLine.getPath();
-				var best = -1;
-				var bestBy = 0;
-				/// iterate over markers, starting from 1 to length -1
-				for(var i = 1; i < path.getLength(); ++i)
-				{
-					var p1 = ll2p(path.getAt(i-1));
-					var p2 = ll2p(path.getAt(i));
-					var d = distanceFromSegment(pixel, p1, p2);
-
-					if(best < 0 || d < bestBy)
-					{
-						best = i;
-						bestBy = d;
-					}
-				}
-				// add a node here
-				that.InsertLatLng(e.latLng, true, best);
-			}else{
-				if(editPath != null){
-					editPath.SetActive(false);
-				}
-				editPath = that;
-				editPath.SetActive(true);
-			}	
-		});
-
-		google.maps.event.addListener(this.polyLine, "rightclick", function(e){
-			if(that.edit == true){
-				var pixel = ll2p(e.latLng);
-				var path = that.polyLine.getPath();
-				var best = -1;
-				var bestBy = 0;
-				/// iterate over markers, starting from 1 to length -1
-				for(var i = 1; i < path.getLength(); ++i)
-				{
-					var p1 = ll2p(path.getAt(i-1));
-					var p2 = ll2p(path.getAt(i));
-					var d = distanceFromSegment(pixel, p1, p2);
-
-					if(best < 0 || d < bestBy)
-					{
-						best = i;
-						bestBy = d;
-					}
-				}
-				// add am underground path here
-				that.ToggleUnderground(best);
-			}
-		});
-	};
+	
 
 	google.maps.event.addListener(gmap, "click", function(e){
 		if(editPath != null){
@@ -457,44 +354,45 @@ $(document).ready(function(){
 	var markers_heart = new Array();
 	var markers_skill = new Array();
 	var markers_vista = new Array();
+	var map_info = new Array();
+
+	var map_whitelist = [
+		"Dredgehaunt Cliffs",
+		"Lornar's Pass",
+		"Wayfarer Foothills",
+		"Timberline Falls",
+		"Frostgorge Sound",
+		"Snowden Drifts",
+		"Hoelbrak",
+		"Eye of the North",
+		"Plains of Ashford",
+		"Blazeridge Steppes",
+		"Fields of Ruin",
+		"Fireheart Rise",
+		"Iron Marches",
+		"Diessa Plateau",
+		"Black Citadel",
+		"Straits of Devastation",
+		"Cursed Shore",
+		"Malchor's Leap",
+		"Queensdale",
+		"Harathi Hinterlands",
+		"Divinity's Reach",
+		"Kessex Hills",
+		"Gendarran Fields",
+		"Lion's Arch",
+		"Bloodtide Coast",
+		"Southsun Cove",
+		"Caledon Forest",
+		"Metrica Province",
+		"Brisban Wildlands",
+		"The Grove",
+		"Rata Sum",
+		"Mount Maelstrom",
+		"Sparkfly Fen",
+	];
 
 	$.getJSON( "https://api.guildwars2.com/v1/map_floor.json?continent_id=1&floor=0", function( data ) {
-		//console.log(data);
-		var points_of_interest = new Array();
-		var tasks = new Array();
-		var skill_challenges = new Array();
-		for(var rkey in data.regions){
-			var region = data.regions[rkey];
-			for(var mkey in region.maps){
-				var map = region.maps[mkey];
-				for(var key in map.points_of_interest){
-					var k = map.points_of_interest[key].poi_id;
-					if(!(k in points_of_interest)){
-						//console.log("Adding " + k + " to POIs");
-						points_of_interest[k] = map.points_of_interest[key];
-					}else
-					{
-						//console.log("Already have " + k + " in POIs");
-					}
-				}
-
-				for(var key in map.tasks){
-					var k = map.tasks[key].task_id;
-					if(!(k in tasks)){
-						//console.log("Adding " + k + " to tasks");
-						tasks[k] = map.tasks[key];
-					}else
-					{
-						//console.log("Already have " + k + " in tasks");
-					}
-				}
-
-				for(var key in map.skill_challenges){
-					//console.log("Adding " + key + " to POIs");
-					skill_challenges.push(map.skill_challenges[key]);
-				}
-			}
-		}
 
 		var waypointIcon = {
 			url: "https://render.guildwars2.com/file/32633AF8ADEA696A1EF56D3AE32D617B10D3AC57/157353.png",
@@ -578,92 +476,161 @@ $(document).ready(function(){
 			};
 		}
 
-		for(var key in points_of_interest){
-			var POI = points_of_interest[key];
-			var tempMarker;
-			if(POI.type == "landmark"){
-				tempMarker = new google.maps.Marker({
-					position: p2ll(new google.maps.Point(POI.coord[0], POI.coord[1])),
-					draggable: false,
+
+
+		for(var rkey in data.regions){
+			var region = data.regions[rkey];
+			for(var mkey in region.maps){
+				var map = region.maps[mkey];
+				if($.inArray(map.name, map_whitelist) == -1){
+					console.log("skipped map " + map.name);
+					continue;
+				}
+				for(var key in map.points_of_interest){
+					var POI = map.points_of_interest[key];
+
+					var tempMarker;
+					if(POI.type == "landmark"){
+						tempMarker = new google.maps.Marker({
+							position: p2ll(new google.maps.Point(POI.coord[0], POI.coord[1])),
+							draggable: false,
+							map: gmap,
+							icon: landmarkIcon,
+							visible: false,
+							name: POI.name,
+							type: POI.type,
+							zIndex: 100,
+						});
+
+						markers_point_of_interest.push(tempMarker);
+
+						google.maps.event.addListener(tempMarker, "mouseover", makeOverFunc(tempMarker));
+						google.maps.event.addListener(tempMarker, "mouseout", makeOutFunc(tempMarker));
+
+					}else if(POI.type == "waypoint"){
+						tempMarker = new google.maps.Marker({
+							position: p2ll(new google.maps.Point(POI.coord[0], POI.coord[1])),
+							draggable: false,
+							map: gmap,
+							icon: waypointIcon,
+							visible: false,
+							name: POI.name,
+							type: POI.type,
+							zIndex: 100,
+						});
+
+						google.maps.event.addListener(tempMarker, "mouseover", makeOverFunc(tempMarker));
+						google.maps.event.addListener(tempMarker, "mouseout", makeOutFunc(tempMarker));
+
+						markers_waypoint.push(tempMarker);
+
+					}else if(POI.type == "vista"){
+						tempMarker = new google.maps.Marker({
+							position: p2ll(new google.maps.Point(POI.coord[0], POI.coord[1])),
+							draggable: false,
+							map: gmap,
+							icon: vistaIcon,
+							visible: false,
+							name: "Discovered Vista",
+							type: POI.type,
+							zIndex: 100,
+						});
+
+						markers_vista.push(tempMarker);
+
+						google.maps.event.addListener(tempMarker, "mouseover", makeOverFunc(tempMarker));
+						google.maps.event.addListener(tempMarker, "mouseout", makeOutFunc(tempMarker));
+					}
+				}
+
+				for(var key in map.tasks){
+					var task = map.tasks[key];
+					
+					var tempMarker = new google.maps.Marker({
+						position: p2ll(new google.maps.Point(task.coord[0], task.coord[1])),
+						draggable: false,
+						map: gmap,
+						icon: taskIcon,
+						visible: false,
+						name: task.objective + "\xA0\xA0<font style='color:#BBB;font-size:0.9em;'>(" + task.level + ")</font>",
+						type: "task",
+						zIndex: 100,
+					});
+					markers_heart.push(tempMarker);
+
+					google.maps.event.addListener(tempMarker, "mouseover", makeOverFunc(tempMarker));
+					google.maps.event.addListener(tempMarker, "mouseout", makeOutFunc(tempMarker));
+
+				}
+
+				for(var key in map.skill_challenges){
+					var skill = map.skill_challenges[key];
+
+					var tempMarker = new google.maps.Marker({
+						position: p2ll(new google.maps.Point(skill.coord[0], skill.coord[1])),
+						draggable: false,
+						map: gmap,
+						icon: skillpointIcon,
+						visible: false,
+						type: "skill",
+						name: "Skill Point",
+						zIndex: 100,
+					});
+					markers_skill.push(tempMarker);
+
+					google.maps.event.addListener(tempMarker, "mouseover", makeOverFunc(tempMarker));
+					google.maps.event.addListener(tempMarker, "mouseout", makeOutFunc(tempMarker));
+					
+				}
+
+				var label_coord = new google.maps.Point(
+					(map.continent_rect[0][0] + map.continent_rect[1][0]) / 2,
+					(map.continent_rect[0][1] + map.continent_rect[1][1]) / 2
+				);
+
+				new MapLabel({
 					map: gmap,
-					icon: landmarkIcon,
-					visible: true,
-					name: POI.name,
-					type: POI.type,
+					fontColor: '#d6bb70',
+					fontSize: 24,
+					fontFamily: 'Menomonia',
+					strokeWeight: 3,
+					strokeColor: '#000',
+					maxZoom: 9,
+					minZoom: 7,
+					position: p2ll(label_coord),
+					text: map.name,
+					level: map.min_level == 0 ? null : "(" + map.min_level + " - " + map.max_level + ")",
+					levelColor: '#AAA',
+					levelSize: 20,
+					zIndex: 100,
 				});
+				
 
-				markers_point_of_interest.push(tempMarker);
-
-				google.maps.event.addListener(tempMarker, "mouseover", makeOverFunc(tempMarker));
-				google.maps.event.addListener(tempMarker, "mouseout", makeOutFunc(tempMarker));
-
-			}else if(POI.type == "waypoint"){
-				tempMarker = new google.maps.Marker({
-					position: p2ll(new google.maps.Point(POI.coord[0], POI.coord[1])),
-					draggable: false,
-					map: gmap,
-					icon: waypointIcon,
-					visible: true,
-					name: POI.name,
-					type: POI.type,
+				map_info.push({
+					name: map.name,
+					min_level: map.min_level,
+					max_level: map.max_level,
+					map_rect: [	new google.maps.Point(map.continent_rect[0][0], map.continent_rect[0][1]), new google.maps.Point(map.continent_rect[1][0], map.continent_rect[1][1]) ],
 				});
-
-				google.maps.event.addListener(tempMarker, "mouseover", makeOverFunc(tempMarker));
-				google.maps.event.addListener(tempMarker, "mouseout", makeOutFunc(tempMarker));
-
-				markers_waypoint.push(tempMarker);
-
-			}else if(POI.type == "vista"){
-				tempMarker = new google.maps.Marker({
-					position: p2ll(new google.maps.Point(POI.coord[0], POI.coord[1])),
-					draggable: false,
-					map: gmap,
-					icon: vistaIcon,
-					visible: true,
-					name: "Discovered Vista",
-					type: POI.type,
-				});
-
-				markers_vista.push(tempMarker);
-
-				google.maps.event.addListener(tempMarker, "mouseover", makeOverFunc(tempMarker));
-				google.maps.event.addListener(tempMarker, "mouseout", makeOutFunc(tempMarker));
 			}
-		}
 
-		for(var key in tasks){
-			var task = tasks[key];
-			var tempMarker = new google.maps.Marker({
-				position: p2ll(new google.maps.Point(task.coord[0], task.coord[1])),
-				draggable: false,
+			var reg_label_coord = new google.maps.Point(region.label_coord[0], region.label_coord[1]);
+
+			console.log(region.name);
+
+			new MapLabel({
 				map: gmap,
-				icon: taskIcon,
-				visible: true,
-				name: task.objective + "\xA0\xA0<font style='color:#BBB;font-size:0.9em;'>(" + task.level + ")</font>",
-				type: "task",
+				fontColor: '#d6bb70',
+				fontSize: 24,
+				fontFamily: 'Menomonia',
+				strokeWeight: 3,
+				strokeColor: '#000',
+				maxZoom: 6,
+				minZoom: 6,
+				position: p2ll(reg_label_coord),
+				text: region.name,
+				zIndex: 100,
 			});
-			markers_heart.push(tempMarker);
-
-			google.maps.event.addListener(tempMarker, "mouseover", makeOverFunc(tempMarker));
-			google.maps.event.addListener(tempMarker, "mouseout", makeOutFunc(tempMarker));
-
-		}
-
-		for(var key in skill_challenges){
-			var skill = skill_challenges[key];
-			var tempMarker = new google.maps.Marker({
-				position: p2ll(new google.maps.Point(skill.coord[0], skill.coord[1])),
-				draggable: false,
-				map: gmap,
-				icon: skillpointIcon,
-				visible: true,
-				type: "skill",
-				name: "Skill Point",
-			});
-			markers_skill.push(tempMarker);
-
-			google.maps.event.addListener(tempMarker, "mouseover", makeOverFunc(tempMarker));
-			google.maps.event.addListener(tempMarker, "mouseout", makeOutFunc(tempMarker));
 		}
 	});
 
@@ -676,6 +643,20 @@ $(document).ready(function(){
 		var max_count = 20;
 		var delay = 0;
 		if(state == 0){
+			for (var i = start; i < markers_waypoint.length; i++) {
+				action(markers_waypoint[i]);
+
+				count++;
+				if(count > max_count)
+				{
+					setTimeout(function(){ doAllMarkers(action, state, i); }, delay);
+					return;
+				}
+			}
+			state++;
+			start = 0;
+		}
+		if(state == 1){
 			for (var i = start; i < markers_skill.length; i++) {
 				action(markers_skill[i]);
 
@@ -689,7 +670,7 @@ $(document).ready(function(){
 			state++;
 			start = 0;
 		}
-		if(state == 1){
+		if(state == 2){
 			for (var i = start; i < markers_heart.length; i++) {
 				action(markers_heart[i]);
 
@@ -703,7 +684,7 @@ $(document).ready(function(){
 			state++;
 			start = 0;
 		}
-		if(state == 2){
+		if(state == 3){
 			for (var i = start; i < markers_vista.length; i++) {
 				action(markers_vista[i]);
 
@@ -717,7 +698,7 @@ $(document).ready(function(){
 			state++;
 			start = 0;
 		}
-		if(state == 3){
+		if(state == 4){
 			for (var i = start; i < markers_point_of_interest.length; i++) {
 				action(markers_point_of_interest[i]);
 
@@ -734,8 +715,8 @@ $(document).ready(function(){
 	}
 
 	google.maps.event.addListener(gmap, "zoom_changed", function(){
-		var markerZoom = 6;
-		var pathZoom = 7;
+		var markerZoom = 8;
+		var pathZoom = 8;
 		if(gmap.getZoom() <= markerZoom && lastZoom > markerZoom){
 			doAllMarkers(function(marker){
 				marker.setVisible(false);
@@ -761,5 +742,93 @@ $(document).ready(function(){
 
 		lastZoom = gmap.getZoom();
 	});
+
+	var pathStyleNormal = {
+		editable: false,
+		map: gmap,
+		suppressUndo: true,
+		zIndex: 9,
+		strokeOpacity: 1,
+		strokeWeight: 3,
+		strokeColor: '#4F4',
+	};
+
+	var pathStyleUnderground = {
+		editable: false,
+		map: gmap,
+		suppressUndo: true,
+		zIndex: 9,
+		strokeOpacity: 0,
+		strokeWeight: 2,
+		strokeColor: '#F62',
+		icons:  [{
+	    	icon: {
+			    path: 'M 1,-2 1,2 -1,2 -1,-2 z',
+			    fillOpacity: 1,
+			    strokeWeight: 0,
+		  	},
+	    	offset: '0px',
+	    	repeat: '12px',
+	    }],
+	};
+
+	var myPath = new MapPath(gmap, {
+		types: [pathStyleNormal, pathStyleUnderground],
+		vertices: [
+			{
+				pos: p2ll(new google.maps.Point(4000,4000)),
+				type: 0,
+			},
+			{
+				pos: p2ll(new google.maps.Point(6000,6000)),
+				type: 0,
+			},
+			{
+				pos: p2ll(new google.maps.Point(12000,7000)),
+				type: 1,
+			},
+			{
+				pos: p2ll(new google.maps.Point(9000,10000)),
+				type: 0,
+			},
+			{
+				pos: p2ll(new google.maps.Point(10000,11000)),
+				type: 0,
+			},
+		],
+	});   
+	
+
+	// detect zone stuff
+
+	var currentZone = null;
+
+	google.maps.event.addListener(gmap, 'center_changed', function(){
+		var center = ll2p(gmap.getCenter());
+		console.log(currentZone);
+		if(currentZone == null || 
+			!(
+				map_info[currentZone].map_rect[0].x < center.x &&
+				map_info[currentZone].map_rect[1].x > center.x &&
+				map_info[currentZone].map_rect[0].y < center.y &&
+				map_info[currentZone].map_rect[1].y > center.y
+			))
+		{
+			for (var i = map_info.length - 1; i >= 0; i--) {
+				if(map_info[i].map_rect[0].x < center.x &&
+					map_info[i].map_rect[1].x > center.x &&
+					map_info[i].map_rect[0].y < center.y &&
+					map_info[i].map_rect[1].y > center.y)
+				{
+					currentZone = i;
+					$('#map_title').show()
+					$('#map_title_content').text(map_info[i].name);
+					return;
+				}
+			}
+			currentZone = null;
+			$('#map_title').hide();
+		}	
+	})
 
 });
