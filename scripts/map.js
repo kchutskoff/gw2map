@@ -176,109 +176,6 @@ $(document).ready(function(){
 	});
 
 
-			
-	var editPath = null;
-
-	function PolyPath(map){
-		var that = this;
-		this.polyLines = new Array();
-		this.polyLinesType = new Array();
-		this.edit = false;
-		this.map = map
-	};
-
-	PolyPath.prototype.polyEdit = {
-	    strokeColor: '#0B0',
-	    strokeOpacity: 1.0,
-	    strokeWeight: 3,
-	    icons: [{
-	    	icon: {
-			    path: 'M 0,-2 1,0 -1,0 z',
-			    fillOpacity: 1,
-			    strokeWeight: 1,
-			    scale: 5
-		  	},
-	    	offset: '100%',
-	    	repeat: '100px',
-	    }],
-	};
-
-	PolyPath.prototype.polyDone = {
-	    strokeColor: '#B00',
-	    strokeOpacity: 1.0,
-	    strokeWeight: 3,
-	    icons: [{
-	    	icon: {
-			    path: 'M 0,-2 1,0 -1,0 z',
-			    fillOpacity: 1,
-			    strokeWeight: 1,
-			    scale: 5
-		  	},
-	    	offset: '100%',
-	    	repeat: '100px',
-	    }],
-	};
-
-	PolyPath.prototype.polyUnderground = {
-	    strokeColor: '#D70',
-	    strokeOpacity: 1.0,
-	    strokeWeight: 3,
-	    icons: [],
-	};
-
-	PolyPath.prototype.InsertLatLng = function(LatLng, index, type){
-		index = typeof index != 'undefined' ? index : this.polyLines.length;
-		type = typeof type != 'undefined' ? type : 0;
-		
-
-	};
-
-	PolyPath.prototype.SetActive = function(bool){
-	};
-
-	PolyPath.prototype.setVisible = function(bool){
-		this.SetActive(false);
-		for (var i = this.polyLines.length - 1; i >= 0; i--) {
-			this.polyLines[i].setVisible(bool);
-		};
-	}
-
-	PolyPath.prototype.ToggleUnderground = function(index){
-	}
-
-
-	
-
-	google.maps.event.addListener(gmap, "click", function(e){
-		if(editPath != null){
-			editPath.InsertLatLng(e.latLng, true);
-		}else{
-			editPath = new PolyPath(gmap);
-			editPath.InsertLatLng(e.latLng, true);
-			allPaths.push(editPath);
-		}
-	});
-
-	function loadLines(lines){
-		for (var i = lines.length - 1; i >= 0; i--) {
-			var line = lines[i];
-			var tempPath = new PolyPath(gmap);
-			for (var j = line.length - 1; j >= 0; j--) {
-				var point = line[j];
-				tempPath.InsertLatLng(p2ll(point));
-			};
-			tempPath.SetActive(false);
-			allPaths.push(tempPath);
-		};
-	}
-
-	if(typeof GW2MapLoadData == 'function'){
-		console.log("Loading data...");
-		loadLines(GW2MapLoadData());
-	}else{
-		console.log("Data is unavailable.");
-	}
-
 	var markers_waypoint = new Array();
 	var markers_point_of_interest = new Array();
 	var markers_heart = new Array();
@@ -321,6 +218,49 @@ $(document).ready(function(){
 		"Mount Maelstrom",
 		"Sparkfly Fen",
 	];
+
+	// I eventually want to stop using the API directly and host a server-side version instead. Reason being skillpoints don't have IDs and the organization of the current API is quite frustrating. Also, if the API ever changes, this entire function will likely stop working. Also the fact we have to use a whitelist isn't a great thing.
+
+	// for now, lets try organize the data in json as follows. This should become tables in a DB later once a backend has been created.
+
+	/*
+		WORLD
+			SIZE.X
+			SIZE.Y
+			REGION[n]
+				UUID
+				NAME
+				LABEL.X
+				LABEL.Y
+				ZONE[n]
+					UUID
+					NAME
+					LABEL.X
+					LABEL.Y
+					LEVELRANGE.MIN
+					LEVELRANGE.MAX
+					AREA.TOP
+					AREA.LEFT
+					AREA.BOT
+					AREA.RIGHT
+					MAPITEM[n]
+						UUID
+						TYPE
+						NAME
+						POS.X
+						POS.Y
+						LEVEL
+					SECTOR[n]
+						UUID
+						NAME
+						LABEL.X
+						LABEL.Y
+						LEVEL
+*/
+
+
+
+	var ALLMAPDATA = new Array();
 
 	$.getJSON( "https://api.guildwars2.com/v1/map_floor.json?continent_id=1&floor=0", function( data ) {
 
