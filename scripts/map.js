@@ -54,11 +54,12 @@ $(document).ready(function(){
 		maxZoom: 11,
 		center: new google.maps.LatLng(0, 0),
 		streetViewControl: false,
+		mapTypeControl: false,
 		backgroundColor: '#000',
 		mapTypeId: "1", // string for gmaps' sake
-		mapTypeControlOptions: {
-			mapTypeIds: ["1","2"]
-		}
+//		mapTypeControlOptions: {
+//			mapTypeIds: ["1","2"]
+//		}
 	});
 
 // For mouse-over markers
@@ -107,7 +108,7 @@ $(document).ready(function(){
 		tileSize: tile_size,
 		getTileUrl: get_tile
 	});
-		
+/*		
 	var mists = new google.maps.ImageMapType({
 		maxZoom: 10,
 		alt: "The Mists",
@@ -115,42 +116,21 @@ $(document).ready(function(){
 		tileSize: tile_size,
 		getTileUrl: get_tile
 	});
-
+*/
 	gmap.mapTypes.set("1",tyria);
-	gmap.mapTypes.set("2",mists);
+//	gmap.mapTypes.set("2",mists);
+
+// legacy stuff, should be removed later (or updated)
+	var allPaths = new Array();
 
 	// centering map at start
-
 	gmap.setCenter(p2ll(new google.maps.Point(mapSize/2, mapSize/2)));
 
-	var exportDiv = document.createElement('div');
-	exportDiv.style.padding = '5px';
-
-	// Set CSS for the control border
-	var controlUI = document.createElement('div');
-	controlUI.style.backgroundColor = 'white';
-	controlUI.style.borderStyle = 'solid';
-	controlUI.style.borderWidth = '1px';
-	controlUI.style.borderRadius = '2px';
-	controlUI.style.borderColor = 'grey';
-	controlUI.style.cursor = 'pointer';
-	controlUI.style.textAlign = 'center';
-	controlUI.title = 'Click to export';
-	controlUI.style.padding = '1px';
-	exportDiv.appendChild(controlUI);
-
-	// Set CSS for the control interior
-	var controlText = document.createElement('div');
-	controlText.style.fontFamily = 'Arial,sans-serif';
-	controlText.style.fontSize = '12px';
-	controlText.style.paddingLeft = '4px';
-	controlText.style.paddingRight = '4px';
-	controlText.innerHTML = '<b>Export</b>';
-	controlUI.appendChild(controlText);
-
+	// keep track of position
 	var lastValidPosition = ll2p(gmap.getCenter());
 
-	function boundCheck(){
+	// hold map in place
+	google.maps.event.addListener(gmap, 'center_changed', function(){
 		var bounds = gmap.getBounds();
 		var ne = ll2p(bounds.getNorthEast());
 		var sw = ll2p(bounds.getSouthWest());
@@ -193,59 +173,9 @@ $(document).ready(function(){
 			
 		}
 
-	}
-
-	google.maps.event.addListener(gmap, 'center_changed', boundCheck);
-/*
-	google.maps.event.addListener(gmap, 'bounds_changed', function(){
-		console.log("bounds_changed");
-		var ne = ll2p(gmap.getBounds().getNorthEast());
-		var sw = ll2p(gmap.getBounds().getSouthWest());
-		console.log(ne.x + ", " + ne.y + "   " + sw.x + ", " + sw.y);
 	});
 
-	google.maps.event.addListener(gmap, 'center_changed', function(){
-		console.log("center_changed");
-		var ne = ll2p(gmap.getBounds().getNorthEast());
-		var sw = ll2p(gmap.getBounds().getSouthWest());
-		console.log(ne.x + ", " + ne.y + "   " + sw.x + ", " + sw.y);
-	});
 
-	google.maps.event.addListener(gmap, 'dragstart', function(){
-		console.log("dragstart");
-		var ne = ll2p(gmap.getBounds().getNorthEast());
-		var sw = ll2p(gmap.getBounds().getSouthWest());
-		console.log(ne.x + ", " + ne.y + "   " + sw.x + ", " + sw.y);
-	});
-
-	google.maps.event.addListener(gmap, 'dragend', function(){
-		console.log("dragend");
-		var ne = ll2p(gmap.getBounds().getNorthEast());
-		var sw = ll2p(gmap.getBounds().getSouthWest());
-		console.log(ne.x + ", " + ne.y + "   " + sw.x + ", " + sw.y);
-	});
-*/
-	var allPaths = new Array();
-
-	// Setup the click event listeners: simply set the map to
-	// Chicago
-	google.maps.event.addDomListener(controlUI, 'click', function() {
-		var pathData = new Array();
-		for (var i = allPaths.length - 1; i >= 0; i--) {
-			var path = allPaths[i];
-			var pathPoints = new Array();
-			for(var j = path.polyMarkers.length - 1; j >= 0; j--){
-				var marker = path.polyMarkers[j];
-				var p = ll2p(marker.getPosition());
-				pathPoints.push(p);
-			}
-			pathData.push(pathPoints);
-		};
-		console.log(JSON.stringify(pathData));
-	});
-
-	exportDiv.index = 1;
-	gmap.controls[google.maps.ControlPosition.TOP_RIGHT].push(exportDiv);
 			
 	var editPath = null;
 
@@ -394,38 +324,40 @@ $(document).ready(function(){
 
 	$.getJSON( "https://api.guildwars2.com/v1/map_floor.json?continent_id=1&floor=0", function( data ) {
 
+		console.log(data);
+
 		var waypointIcon = {
-			url: "https://render.guildwars2.com/file/32633AF8ADEA696A1EF56D3AE32D617B10D3AC57/157353.png",
-			anchor: new google.maps.Point(12,12),
-			scaledSize: new google.maps.Size(24,24),
+			url: "images/icon_waypoint.png",
+			anchor: new google.maps.Point(14,14),
+			scaledSize: new google.maps.Size(28,28),
 		};
 
 		var waypointHoverIcon = {
-			url: "https://render.guildwars2.com/file/95CE3F6B0502232AD90034E4B7CE6E5B0FD3CC5F/157354.png",
-			anchor: new google.maps.Point(12,12),
-			scaledSize: new google.maps.Size(24,24),
+			url: "images/icon_waypoint_hover.png",
+			anchor: new google.maps.Point(14,14),
+			scaledSize: new google.maps.Size(28,28),
 		};
 
 		var landmarkIcon = {
-			url: "https://render.guildwars2.com/file/25B230711176AB5728E86F5FC5F0BFAE48B32F6E/97461.png",
-			anchor: new google.maps.Point(9,9),
-			scaledSize: new google.maps.Size(18,18),
+			url: "images/icon_POI.png",
+			anchor: new google.maps.Point(11,11),
+			scaledSize: new google.maps.Size(22,22),
 		};
 
 		var vistaIcon = {
-			url: "images/vista.png",
+			url: "images/icon_vista.png",
 			anchor: new google.maps.Point(11,11),
 			scaledSize: new google.maps.Size(22,22),
 		};
 
 		var skillpointIcon = {
-			url: "images/skillpoint.png",
+			url: "images/icon_skillpoint.png",
 			anchor: new google.maps.Point(11,11),
 			scaledSize: new google.maps.Size(22,22),
 		};
 
 		var taskIcon = {
-			url: "https://render.guildwars2.com/file/B3DEEC72BBEF0C6FC6FEF835A0E275FCB1151BB7/102439.png",
+			url: "images/icon_heart.png",
 			anchor: new google.maps.Point(11,11),
 			scaledSize: new google.maps.Size(22,22),
 		};
