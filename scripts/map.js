@@ -1,5 +1,23 @@
 $(document).ready(function(){
 
+// get URL query parameters
+
+	var URLquery = function(){
+		var out = {};
+		var q = window.location.search.substring(1).split('&');
+		for (var i = 0; i < q.length; i++) {
+			var pair = q[i].split('=');
+			if(typeof out[pair[0]] === 'undefined'){
+				out[pair[0]] = pair[1];
+			}else if(typeof out[pair[0]] === 'string'){
+				out[pair[0]] = [ out[pair[0]], pair[1] ];
+			}else{
+				out[pair[0]].push(pair[1]);
+			}
+		};
+		return out;
+	}();
+
 // HELPER FUNCTIONS
 
 	function distanceFromSegment(p, a, b){
@@ -123,11 +141,14 @@ $(document).ready(function(){
 // legacy stuff, should be removed later (or updated)
 	var allPaths = new Array();
 
-	// centering map at start
-	gmap.setCenter(p2ll(new google.maps.Point(mapSize/2, mapSize/2)));
-
-	// keep track of position
-	var lastValidPosition = ll2p(gmap.getCenter());
+// map center
+	if(typeof URLquery.target === 'string'){
+		var targets = URLquery.target.split(',');
+		gmap.setCenter(p2ll(new google.maps.Point(parseInt(targets[0], 10), parseInt(targets[1], 10))));
+	}else{
+		// centering map at start
+		gmap.setCenter(p2ll(new google.maps.Point(mapSize/2, mapSize/2)));
+	}
 
 	// hold map in place
 	google.maps.event.addListener(gmap, 'center_changed', function(){
@@ -174,6 +195,8 @@ $(document).ready(function(){
 		}
 
 	});
+
+	
 
 
 	var markers_waypoint = new Array();
