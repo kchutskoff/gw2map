@@ -281,14 +281,26 @@ $(document).ready(function(){
 						LEVEL
 */
 
+	var data_out = {};
+/*
+	$.getJSON( "https://api.guildwars2.com/v1/map_floor.json?continent_id=1&floor=0", function( data ) {
+		data_out.size = {x: data.texture_dims[0], y: data.texture_dims[1]};
+		data_out.region = [];
 
+		for(var rkey in data.regions){
+			var region = data.regions[rkey];
 
-	var ALLMAPDATA = new Array();
+			data_out.region.push({uuid: uuid.v4(), name: region.name, label: {x: region.label_coord[0], y: region.label_coord[1]}});
+
+			for(var mkey in region.maps){
+				var map = region.maps[mkey];
+			}
+		}
+		console.log(data_out);
+	});
+*/
 
 	$.getJSON( "https://api.guildwars2.com/v1/map_floor.json?continent_id=1&floor=0", function( data ) {
-
-		var data_out = {};
-
 		var waypointIcon = {
 			url: "images/icon_waypoint.png",
 			anchor: new google.maps.Point(14,14),
@@ -371,16 +383,8 @@ $(document).ready(function(){
 			};
 		}
 
-		console.log(uuid.v4());
-
-		data_out.size = {x: data.texture_dims[0], y: data.texture_dims[1]};
-		data_out.region = [];
-
 		for(var rkey in data.regions){
 			var region = data.regions[rkey];
-
-			data_out.region.push({uuid: uuid.v4(), name: region.name, label: {x: region.label_coord[0], y: region.label_coord[1]}});
-
 			for(var mkey in region.maps){
 				var map = region.maps[mkey];
 				if($.inArray(map.name, map_whitelist) == -1){
@@ -516,8 +520,6 @@ $(document).ready(function(){
 			}
 
 			var reg_label_coord = new google.maps.Point(region.label_coord[0], region.label_coord[1]);
-
-			console.log(region.name);
 
 			new MapLabel({
 				map: gmap,
