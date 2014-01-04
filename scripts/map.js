@@ -3,10 +3,14 @@ $(document).ready(function(){
 // get URL query parameters
 
 	function nameToPubID(name, length){
-		// strip special characters, make it lowercase, chop it to length, replace spaces with dashes
-		var out = name.replace(/[^\w\s]/gi, '').toLowerCase().substring(0, length).replace(/ /g,'-');
-		// make sure we don't end on a dash
-		while(out.substring(out.length-1, out.length) == '-'){ out = out.substring(0, out.length-1); }
+		// strip special characters, make it lowercase, split into tokens
+		var tokens = name.replace(/[^\w\s]/gi, '').toLowerCase().split(' ');
+		// add tokens to at most length long
+		var out = tokens[0].substring(0,length); // in case first token is already too long
+		// loop through tokens, as long as the next token doesn't make the total length longer than length
+		for(var i = 1; i < tokens.length && (out.length + 1 + tokens[i].length) <= length; ++i){
+			out += "-" + tokens[i];
+		}
 		return out;
 	}
 
@@ -389,7 +393,7 @@ $(document).ready(function(){
 	$.getJSON( "https://api.guildwars2.com/v1/map_floor.json?continent_id=1&floor=0", function( data ) {
 
 		// create unique ID generators
-		var GenPubID = uniquePubIDGen(20);
+		var GenPubID = uniquePubIDGen(16);
 		var GenRegionID = uniqueIDGen();
 		var GenZoneID = uniqueIDGen();
 		var GenItemID = uniqueIDGen();
