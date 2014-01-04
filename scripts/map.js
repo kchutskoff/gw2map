@@ -24,6 +24,13 @@ $(document).ready(function(){
 		}
 	}
 
+	function uniqueIDGen(){
+		var current = 0;
+		return function(){
+			return current++;
+		}
+	}
+
 	var URLquery = function(){
 		var out = {};
 		var q = window.location.search.substring(1).split('&');
@@ -319,29 +326,121 @@ $(document).ready(function(){
 						LEVEL
 */
 
-	var data_out = {};
+// Organizing data like this may not be the best for performance. Likely better to organize it like a DB would in tables (or arrays of objects on a lookup-key).
+// example follows:
+
+/*
+	dboPublicRegistry[pubid] = {
+		type,
+		localid
+	}
+
+	dboMapItem[itemid] = {
+		pubid,
+		itemid,
+		zoneid (foreign),
+		type,
+		name,
+		pos{
+			x,
+			y
+		},
+		level
+	}
+
+	dboMapZone[zoneid] = {
+		pubid,
+		zoneid,
+		regionid (foreign),
+		name,
+		lavel{
+			min,
+			max
+		},
+		area{
+			top,
+			bottom,
+			left,
+			right
+		},
+		items = [] // list of items in zone, by itemid
+	}
+
+	dboMapRegion[regionid] = {
+		pubid,
+		regionid,
+		name,
+		label{
+			x,
+			y
+		},
+		zones = [] // list of zones in region, by zoneid
+	}
+
+	lookup of values via pubid is easy. Lookup type and localid via the publicRegistry. get item information from specific table
+*/
+
+	var dboPublicRegistry = {};
+	var dboMapItem = {};
+	var dboMapZone = {};
+	var dboMapRegion = {};
+	var dboMapInfo = {};
 
 	$.getJSON( "https://api.guildwars2.com/v1/map_floor.json?continent_id=1&floor=0", function( data ) {
 
+		// create unique ID generators
 		var GenPubID = uniquePubIDGen(20);
+		var GenRegionID = uniqueIDGen();
+		var GenZoneID = uniqueIDGen();
+		var GenItemID = uniqueIDGen();
+		var pubid;
 
-		data_out.size = {x: data.texture_dims[0], y: data.texture_dims[1]};
-		data_out.region = [];
+		// get the size of the map
+		dboMapInfo.size = {x: data.texture_dims[0], y: data.texture_dims[1]};
 
+		// for each region in the dataset
 		for(var rkey in data.regions){
 			var region = data.regions[rkey];
 
-			var zone_out = [];			
+			// generate a public and region id
+			pubid = GenPubID(region.name);
+			var regionid = GenRegionID(); 
 
+			// store the data on the region id key
+			dboMapRegion[regionid] = {
+				pubid: pubid,
+				regionid: regionid,
+				name: region.name, 
+				label: {
+					x: region.label_coord[0], 
+					y: region.label_coord[1]
+				},
+				zones: new Array()
+			};
+
+			// store the data on the public id
+			dboPublicRegistry[pubid] = {
+				type: 'region',
+				localid: regionid
+			}
+
+			// for each map in the zone
 			for(var mkey in region.maps){
 				var map = region.maps[mkey];
 
 				if($.inArray(map.name, map_whitelist) == -1){
-					continue;
+					continue; // ignore unwanted maps
 				}
 
-				zone_out.push({
-					pubid: GenPubID(map.name), 
+				// generate a public and zone id
+				pubid = GenPubID(map.name);
+				var zoneid = GenZoneID();
+
+				// store data on the zone id key
+				dboMapZone[zoneid] = {
+					pubid: pubid,
+					zoneid: zoneid,
+					regionid: regionid,
 					name: map.name, 
 					level: {
 						min: map.min_level,
@@ -352,21 +451,25 @@ $(document).ready(function(){
 						left: map.continent_rect[0][0],
 						bottom: map.continent_rect[1][1],
 						right: map.continent_rect[1][0]
-					}
-				});
-			}
+					},
+					items: new Array()
+				};
 
-			data_out.region.push({
-				pubid: GenPubID(region.name), 
-				name: region.name, 
-				label: {
-					x: region.label_coord[0], 
-					y: region.label_coord[1]
-				},
-				zone: zone_out
-			});
+				// store data on the public id
+				dboPublicRegistry[pubid] = {
+					type: 'zone',
+					localid: zoneid
+				}
+
+				// store reference on the zone
+				dboMapRegion[regionid].zones.push(zoneid);
+			}
 		}
-		console.log(JSON.stringify(data_out, null, '\t'));
+		console.log("dboPublicRegistry=\n"+JSON.stringify(dboPublicRegistry, null, '\t'));
+		console.log("dboMapItem=\n"+JSON.stringify(dboMapItem, null, '\t'));
+		console.log("dboMapZone=\n"+JSON.stringify(dboMapZone, null, '\t'));
+		console.log("dboMapRegion=\n"+JSON.stringify(dboMapRegion, null, '\t'));
+		console.log("dboMapInfo=\n"+JSON.stringify(dboMapInfo, null, '\t'));
 	});
 
 
