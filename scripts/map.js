@@ -2,6 +2,14 @@ $(document).ready(function(){
 
 // get URL query parameters
 
+	function nameToPubID(name, length){
+		// strip special characters, make it lowercase, chop it to length, replace spaces with dashes
+		var out = name.replace(/[^\w\s]/gi, '').toLowerCase().substring(0, length).replace(/ /g,'-');
+		// make sure we don't end on a dash
+		while(out.substring(out.length-1, out.length) == '-'){ out = out.substring(0, out.length-1); }
+		return out;
+	}
+
 	var URLquery = function(){
 		var out = {};
 		var q = window.location.search.substring(1).split('&');
@@ -142,9 +150,12 @@ $(document).ready(function(){
 	var allPaths = new Array();
 
 // map center
-	if(typeof URLquery.target === 'string'){
+	if(typeof URLquery.target === 'string' && URLquery.target.split(',').length == 2){
 		var targets = URLquery.target.split(',');
+		var centerx = parseInt(targets[0], 10);
+		var centery = parseInt(targets[1], 10);
 		gmap.setCenter(p2ll(new google.maps.Point(parseInt(targets[0], 10), parseInt(targets[1], 10))));
+		
 	}else{
 		// centering map at start
 		gmap.setCenter(p2ll(new google.maps.Point(mapSize/2, mapSize/2)));
@@ -251,15 +262,15 @@ $(document).ready(function(){
 			SIZE.X
 			SIZE.Y
 			REGION[n]
-				UUID
+				ID
+				PUBID
 				NAME
 				LABEL.X
 				LABEL.Y
 				ZONE[n]
-					UUID
+					ID
+					PUBID
 					NAME
-					LABEL.X
-					LABEL.Y
 					LEVELRANGE.MIN
 					LEVELRANGE.MAX
 					AREA.TOP
@@ -267,14 +278,16 @@ $(document).ready(function(){
 					AREA.BOT
 					AREA.RIGHT
 					MAPITEM[n]
-						UUID
+						ID
+						PUBID
 						TYPE
 						NAME
 						POS.X
 						POS.Y
 						LEVEL
 					SECTOR[n]
-						UUID
+						ID
+						PUBID
 						NAME
 						LABEL.X
 						LABEL.Y
@@ -282,23 +295,65 @@ $(document).ready(function(){
 */
 
 	var data_out = {};
-/*
+
 	$.getJSON( "https://api.guildwars2.com/v1/map_floor.json?continent_id=1&floor=0", function( data ) {
+
+		var pubIDLength = 20;
+		var IDcount = [];
+
 		data_out.size = {x: data.texture_dims[0], y: data.texture_dims[1]};
 		data_out.region = [];
 
 		for(var rkey in data.regions){
 			var region = data.regions[rkey];
 
-			data_out.region.push({uuid: uuid.v4(), name: region.name, label: {x: region.label_coord[0], y: region.label_coord[1]}});
+			var zone_out = [];			
 
 			for(var mkey in region.maps){
 				var map = region.maps[mkey];
+
+				var map_pubid = nameToPubID(map.name, pubIDLength);
+				var map_uuid = uuid.v4();
+				if(typeof IDcount[map_pubid] === 'undefined'){
+					IDcount[map_pubid] = 0;
+				}else{
+					// have a duplicate
+					map_pubid += (++IDcount[map_pubid]);
+				}
+
+				zone_out.push({
+					uuid: map_uuid, 
+					pubid: map_pubid, 
+					name: map.name, 
+					level: {
+						min: map.min_level,
+						max: map.max_level
+					},
+					area: {
+						top: map.continent_rect[0][1],
+						left: map.continent_rect[0][0],
+						bottom: map.continent_rect[1][1],
+						right: map.continent_rect[1][0]
+					}
+				});
+
+
 			}
+
+			data_out.region.push({
+				uuid: uuid.v4(),
+				pubid: nameToPubID(region.name, pubIDLength), 
+				name: region.name, 
+				label: {
+					x: region.label_coord[0], 
+					y: region.label_coord[1]
+				},
+				zone: zone_out
+			});
 		}
-		console.log(data_out);
+		console.log(JSON.stringify(data_out, null, '\t'));
 	});
-*/
+
 
 	$.getJSON( "https://api.guildwars2.com/v1/map_floor.json?continent_id=1&floor=0", function( data ) {
 		var waypointIcon = {
@@ -535,8 +590,6 @@ $(document).ready(function(){
 				zIndex: 100,
 			});
 		}
-
-		console.log(data_out);
 	});
 
 	var lastZoom = gmap.getZoom();
