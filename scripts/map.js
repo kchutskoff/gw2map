@@ -383,7 +383,6 @@ $(document).ready(function(){
 
 	lookup of values via pubid is easy. Lookup type and localid via the publicRegistry. get item information from specific table
 */
-
 	var dboPublicRegistry = {};
 	var dboMapItem = {};
 	var dboMapZone = {};
@@ -428,7 +427,7 @@ $(document).ready(function(){
 				localid: regionid
 			}
 
-			// for each map in the zone
+			// for each zone in the region
 			for(var mkey in region.maps){
 				var map = region.maps[mkey];
 
@@ -465,8 +464,104 @@ $(document).ready(function(){
 					localid: zoneid
 				}
 
-				// store reference on the zone
+				// store reference on the region
 				dboMapRegion[regionid].zones.push(zoneid);
+
+				// for each item(poi) in the zone
+				for(var key in map.points_of_interest){
+					var poi = map.points_of_interest[key];
+
+					if(poi.type == "vista"){
+						poi.name = "Discovered Vista";
+					}
+
+					pubid = GenPubID(poi.name);
+					var itemid = GenItemID();
+
+					// store in map item table
+					dboMapItem[itemid] = {
+						pubid: pubid,
+						itemid: itemid,
+						zoneid: zoneid,
+						type: poi.type,
+						name: poi.name,
+						pos: {
+							x: poi.coord[0],
+							y: poi.coord[1],
+						},
+						level: 0
+					}
+
+					// store in public id table
+					dboPublicRegistry[pubid] = {
+						type: 'item',
+						localid: itemid
+					}
+
+					// store reference on the zone
+					dboMapZone[zoneid].items.push(itemid);
+				}
+
+				// for each item(task) in the zone
+				for(var key in map.tasks){
+					var task = map.tasks[key];
+
+					pubid = GenPubID(task.objective);
+					var itemid = GenItemID();
+
+					// store in map item table
+					dboMapItem[itemid] = {
+						pubid: pubid,
+						itemid: itemid,
+						zoneid: zoneid,
+						type: 'task',
+						name: task.objective,
+						pos: {
+							x: task.coord[0],
+							y: task.coord[1],
+						},
+						level: task.level
+					}
+
+					// store in public id table
+					dboPublicRegistry[pubid] = {
+						type: 'item',
+						localid: itemid
+					}
+
+					// store reference on the zone
+					dboMapZone[zoneid].items.push(itemid);
+				}
+
+				for(var key in map.skill_challenges){
+					var skill = map.skill_challenges[key];
+
+					pubid = GenPubID("Skill Challenge");
+					var itemid = GenItemID();
+
+					// store in map item table
+					dboMapItem[itemid] = {
+						pubid: pubid,
+						itemid: itemid,
+						zoneid: zoneid,
+						type: 'skill',
+						name: "Skill Challenge",
+						pos: {
+							x: skill.coord[0],
+							y: skill.coord[1],
+						},
+						level: 0
+					}
+
+					// store in public id table
+					dboPublicRegistry[pubid] = {
+						type: 'item',
+						localid: itemid
+					}
+
+					// store reference on the zone
+					dboMapZone[zoneid].items.push(itemid);
+				}
 			}
 		}
 		console.log("dboPublicRegistry=\n"+JSON.stringify(dboPublicRegistry, null, '\t'));
@@ -474,10 +569,11 @@ $(document).ready(function(){
 		console.log("dboMapZone=\n"+JSON.stringify(dboMapZone, null, '\t'));
 		console.log("dboMapRegion=\n"+JSON.stringify(dboMapRegion, null, '\t'));
 		console.log("dboMapInfo=\n"+JSON.stringify(dboMapInfo, null, '\t'));
-	});
 
 
-	$.getJSON( "https://api.guildwars2.com/v1/map_floor.json?continent_id=1&floor=0", function( data ) {
+////// SPLIT
+
+
 		var waypointIcon = {
 			url: "images/icon_waypoint.png",
 			anchor: new google.maps.Point(14,14),
