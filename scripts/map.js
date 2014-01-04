@@ -170,82 +170,6 @@ $(document).ready(function(){
 	gmap.mapTypes.set("1",tyria);
 //	gmap.mapTypes.set("2",mists);
 
-// legacy stuff, should be removed later (or updated)
-	var allPaths = new Array();
-
-// map center
-	var validTarget = false;
-	if(typeof URLquery.target != 'undefined'){
-		for(var i = 0; i < URLquery.target.length && !validTarget; ++i)
-		{
-			// try each target in order
-			var split = URLquery.target[i].split(',');
-			if(split.length == 2){
-				var centerx = parseInt(split[0], 10);
-				var centery = parseInt(split[1], 10);
-				if(centerx && centery){
-					console.log("valid center");
-					gmap.setCenter(p2ll(new google.maps.Point(centerx, centery)));
-					validTarget = true;
-				}	
-			}
-		}
-	}
-	if(!validTarget)
-	{
-		// centering map at start
-		gmap.setCenter(p2ll(new google.maps.Point(mapSize/2, mapSize/2)));
-	}
-
-	// hold map in place
-	google.maps.event.addListener(gmap, 'center_changed', function(){
-		var bounds = gmap.getBounds();
-		var ne = ll2p(bounds.getNorthEast());
-		var sw = ll2p(bounds.getSouthWest());
-		var pos = ll2p(gmap.getCenter());
-		//console.log("center: " + pos.x + ", " + pos.y);
-		//console.log("NE: " + ne.x + ", " + ne.y);
-		//console.log("SW: " + sw.x + ", " + sw.y);
-
-		var force = false;
-
-		if(sw.y - ne.y >= mapSize){
-			if(pos.y != mapSize/2){
-				pos.y = mapSize/2;
-				force = true;
-			}
-		}else if(ne.y < 0){
-			pos.y -= ne.y;
-			force = true;
-		}else if(sw.y > mapSize){
-			pos.y -= (sw.y - mapSize);
-			force = true;
-		}
-
-		if(ne.x - sw.x >= mapSize){
-			if(pos.x != mapSize/2){
-				pos.x = mapSize/2;
-				force = true;
-			}
-		}else if(sw.x < 0){
-			pos.x -= sw.x;
-			force = true;
-		}else if(ne.x > mapSize){
-			pos.x -= (ne.x - mapSize);
-			force = true;
-		}
-
-		if(force == true){
-			//console.log("set center: " + pos.x + ", " + pos.y);
-			gmap.setCenter(p2ll(pos));
-			
-		}
-
-	});
-
-	
-
-
 	var markers_waypoint = new Array();
 	var markers_point_of_interest = new Array();
 	var markers_heart = new Array();
@@ -918,6 +842,90 @@ $(document).ready(function(){
 
 		lastZoom = gmap.getZoom();
 	});
+
+	// map center
+	var validTarget = false;
+	if(typeof URLquery.target != 'undefined'){
+		for(var i = 0; i < URLquery.target.length && !validTarget; ++i)
+		{
+			// try each target in order
+			// is it an pubid target?
+			if(URLquery.target[i] in dboPublicRegistry)
+			{
+				// todo:
+				// currently publicRegistry doesn't exist at this point. Once I've finalized it, it should be loaded before this .js file executes.
+			}else
+			{
+				var match = URLquery.target[i].match(/(\d.*)\,(\d.*)/);
+				console.log(match);
+
+				if(match){
+					var centerx = parseInt(match[1], 10);
+					var centery = parseInt(match[2], 10);
+					if(centerx && centery){
+						console.log("valid center");
+						gmap.setCenter(p2ll(new google.maps.Point(centerx, centery)));
+						validTarget = true;
+					}	
+				}
+			}
+		}
+	}
+	if(!validTarget)
+	{
+		// centering map at start
+		gmap.setCenter(p2ll(new google.maps.Point(mapSize/2, mapSize/2)));
+	}
+
+	// hold map in place
+	google.maps.event.addListener(gmap, 'center_changed', function(){
+		var bounds = gmap.getBounds();
+		var ne = ll2p(bounds.getNorthEast());
+		var sw = ll2p(bounds.getSouthWest());
+		var pos = ll2p(gmap.getCenter());
+		//console.log("center: " + pos.x + ", " + pos.y);
+		//console.log("NE: " + ne.x + ", " + ne.y);
+		//console.log("SW: " + sw.x + ", " + sw.y);
+
+		var force = false;
+
+		if(sw.y - ne.y >= mapSize){
+			if(pos.y != mapSize/2){
+				pos.y = mapSize/2;
+				force = true;
+			}
+		}else if(ne.y < 0){
+			pos.y -= ne.y;
+			force = true;
+		}else if(sw.y > mapSize){
+			pos.y -= (sw.y - mapSize);
+			force = true;
+		}
+
+		if(ne.x - sw.x >= mapSize){
+			if(pos.x != mapSize/2){
+				pos.x = mapSize/2;
+				force = true;
+			}
+		}else if(sw.x < 0){
+			pos.x -= sw.x;
+			force = true;
+		}else if(ne.x > mapSize){
+			pos.x -= (ne.x - mapSize);
+			force = true;
+		}
+
+		if(force == true){
+			//console.log("set center: " + pos.x + ", " + pos.y);
+			gmap.setCenter(p2ll(pos));
+			
+		}
+
+	});
+
+
+
+
 
 	var pathStyleNormal = {
 		editable: false,
