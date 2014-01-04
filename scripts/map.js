@@ -10,6 +10,20 @@ $(document).ready(function(){
 		return out;
 	}
 
+	// closure to prefix duplicate names with numbers
+	function uniquePubIDGen(length){
+		var NameCount = []; // keep track of previously used names (part of closure)
+		return function(name){
+			var tempID = nameToPubID(name, length); // get the pubID
+			if(typeof NameCount[name] === 'undefined'){ // if no one else has used it
+				NameCount[name] = 1; // start using it
+			}else{
+				tempID += (++NameCount[name]); // otherwise add a number to your ID and incrase the count
+			}
+			return tempID; // return the ID
+		}
+	}
+
 	var URLquery = function(){
 		var out = {};
 		var q = window.location.search.substring(1).split('&');
@@ -298,8 +312,7 @@ $(document).ready(function(){
 
 	$.getJSON( "https://api.guildwars2.com/v1/map_floor.json?continent_id=1&floor=0", function( data ) {
 
-		var pubIDLength = 20;
-		var IDcount = [];
+		var GenPubID = uniquePubIDGen(20);
 
 		data_out.size = {x: data.texture_dims[0], y: data.texture_dims[1]};
 		data_out.region = [];
@@ -312,18 +325,8 @@ $(document).ready(function(){
 			for(var mkey in region.maps){
 				var map = region.maps[mkey];
 
-				var map_pubid = nameToPubID(map.name, pubIDLength);
-				var map_uuid = uuid.v4();
-				if(typeof IDcount[map_pubid] === 'undefined'){
-					IDcount[map_pubid] = 0;
-				}else{
-					// have a duplicate
-					map_pubid += (++IDcount[map_pubid]);
-				}
-
 				zone_out.push({
-					uuid: map_uuid, 
-					pubid: map_pubid, 
+					pubid: GenPubID(map.name), 
 					name: map.name, 
 					level: {
 						min: map.min_level,
@@ -336,13 +339,10 @@ $(document).ready(function(){
 						right: map.continent_rect[1][0]
 					}
 				});
-
-
 			}
 
 			data_out.region.push({
-				uuid: uuid.v4(),
-				pubid: nameToPubID(region.name, pubIDLength), 
+				pubid: GenPubID(region.name), 
 				name: region.name, 
 				label: {
 					x: region.label_coord[0], 
