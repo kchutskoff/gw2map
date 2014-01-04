@@ -30,15 +30,14 @@ $(document).ready(function(){
 		for (var i = 0; i < q.length; i++) {
 			var pair = q[i].split('=');
 			if(typeof out[pair[0]] === 'undefined'){
-				out[pair[0]] = pair[1];
-			}else if(typeof out[pair[0]] === 'string'){
-				out[pair[0]] = [ out[pair[0]], pair[1] ];
-			}else{
-				out[pair[0]].push(pair[1]);
+				out[pair[0]] = new Array();
 			}
+			out[pair[0]].push(pair[1]);
 		};
 		return out;
 	}();
+
+	console.log(URLquery);
 
 // HELPER FUNCTIONS
 
@@ -164,13 +163,25 @@ $(document).ready(function(){
 	var allPaths = new Array();
 
 // map center
-	if(typeof URLquery.target === 'string' && URLquery.target.split(',').length == 2){
-		var targets = URLquery.target.split(',');
-		var centerx = parseInt(targets[0], 10);
-		var centery = parseInt(targets[1], 10);
-		gmap.setCenter(p2ll(new google.maps.Point(parseInt(targets[0], 10), parseInt(targets[1], 10))));
-		
-	}else{
+	var validTarget = false;
+	if(typeof URLquery.target != 'undefined'){
+		for(var i = 0; i < URLquery.target.length && !validTarget; ++i)
+		{
+			// try each target in order
+			var split = URLquery.target[i].split(',');
+			if(split.length == 2){
+				var centerx = parseInt(split[0], 10);
+				var centery = parseInt(split[1], 10);
+				if(centerx && centery){
+					console.log("valid center");
+					gmap.setCenter(p2ll(new google.maps.Point(centerx, centery)));
+					validTarget = true;
+				}	
+			}
+		}
+	}
+	if(!validTarget)
+	{
 		// centering map at start
 		gmap.setCenter(p2ll(new google.maps.Point(mapSize/2, mapSize/2)));
 	}
@@ -324,6 +335,10 @@ $(document).ready(function(){
 
 			for(var mkey in region.maps){
 				var map = region.maps[mkey];
+
+				if($.inArray(map.name, map_whitelist) == -1){
+					continue;
+				}
 
 				zone_out.push({
 					pubid: GenPubID(map.name), 
