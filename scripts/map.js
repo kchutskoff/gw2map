@@ -1,40 +1,6 @@
 $(document).ready(function(){
 
 // get URL query parameters
-
-	function nameToPubID(name, length){
-		// strip special characters, make it lowercase, split into tokens
-		var tokens = name.replace(/[^\w\s]/gi, '').toLowerCase().split(' ');
-		// add tokens to at most length long
-		var out = tokens[0].substring(0,length); // in case first token is already too long
-		// loop through tokens, as long as the next token doesn't make the total length longer than length
-		for(var i = 1; i < tokens.length && (out.length + 1 + tokens[i].length) <= length; ++i){
-			out += "-" + tokens[i];
-		}
-		return out;
-	}
-
-	// closure to prefix duplicate names with numbers
-	function uniquePubIDGen(length){
-		var NameCount = []; // keep track of previously used names (part of closure)
-		return function(name){
-			var tempID = nameToPubID(name, length); // get the pubID
-			if(typeof NameCount[name] === 'undefined'){ // if no one else has used it
-				NameCount[name] = 1; // start using it
-			}else{
-				tempID += (++NameCount[name]); // otherwise add a number to your ID and incrase the count
-			}
-			return tempID; // return the ID
-		}
-	}
-
-	function uniqueIDGen(){
-		var current = 0;
-		return function(){
-			return current++;
-		}
-	}
-
 	var URLquery = function(){
 		var out = {};
 		var q = window.location.search.substring(1).split('&');
@@ -213,48 +179,8 @@ $(document).ready(function(){
 		"Sparkfly Fen",
 	];
 
-	// I eventually want to stop using the API directly and host a server-side version instead. Reason being skillpoints don't have IDs and the organization of the current API is quite frustrating. Also, if the API ever changes, this entire function will likely stop working. Also the fact we have to use a whitelist isn't a great thing.
 
-	// for now, lets try organize the data in json as follows. This should become tables in a DB later once a backend has been created.
-
-	/*
-		WORLD
-			SIZE.X
-			SIZE.Y
-			REGION[n]
-				ID
-				PUBID
-				NAME
-				LABEL.X
-				LABEL.Y
-				ZONE[n]
-					ID
-					PUBID
-					NAME
-					LEVELRANGE.MIN
-					LEVELRANGE.MAX
-					AREA.TOP
-					AREA.LEFT
-					AREA.BOT
-					AREA.RIGHT
-					MAPITEM[n]
-						ID
-						PUBID
-						TYPE
-						NAME
-						POS.X
-						POS.Y
-						LEVEL
-					SECTOR[n]
-						ID
-						PUBID
-						NAME
-						LABEL.X
-						LABEL.Y
-						LEVEL
-*/
-
-// Organizing data like this may not be the best for performance. Likely better to organize it like a DB would in tables (or arrays of objects on a lookup-key).
+// Organize it like a DB would in tables (or arrays of objects on a lookup-key).
 // example follows:
 
 /*
@@ -307,196 +233,16 @@ $(document).ready(function(){
 
 	lookup of values via pubid is easy. Lookup type and localid via the publicRegistry. get item information from specific table
 */
+/*
+	// declared in data file
 	var dboPublicRegistry = {};
 	var dboMapItem = {};
 	var dboMapZone = {};
 	var dboMapRegion = {};
 	var dboMapInfo = {};
+*/
 
 	$.getJSON( "https://api.guildwars2.com/v1/map_floor.json?continent_id=1&floor=0", function( data ) {
-
-		// create unique ID generators
-		var GenPubID = uniquePubIDGen(16);
-		var GenRegionID = uniqueIDGen();
-		var GenZoneID = uniqueIDGen();
-		var GenItemID = uniqueIDGen();
-		var pubid;
-
-		// get the size of the map
-		dboMapInfo.size = {x: data.texture_dims[0], y: data.texture_dims[1]};
-
-		// for each region in the dataset
-		for(var rkey in data.regions){
-			var region = data.regions[rkey];
-
-			// generate a public and region id
-			pubid = GenPubID(region.name);
-			var regionid = GenRegionID(); 
-
-			// store the data on the region id key
-			dboMapRegion[regionid] = {
-				pubid: pubid,
-				regionid: regionid,
-				name: region.name, 
-				label: {
-					x: region.label_coord[0], 
-					y: region.label_coord[1]
-				},
-				zones: new Array()
-			};
-
-			// store the data on the public id
-			dboPublicRegistry[pubid] = {
-				type: 'region',
-				localid: regionid
-			}
-
-			// for each zone in the region
-			for(var mkey in region.maps){
-				var map = region.maps[mkey];
-
-				if($.inArray(map.name, map_whitelist) == -1){
-					continue; // ignore unwanted maps
-				}
-
-				// generate a public and zone id
-				pubid = GenPubID(map.name);
-				var zoneid = GenZoneID();
-
-				// store data on the zone id key
-				dboMapZone[zoneid] = {
-					pubid: pubid,
-					zoneid: zoneid,
-					regionid: regionid,
-					name: map.name, 
-					level: {
-						min: map.min_level,
-						max: map.max_level
-					},
-					area: {
-						top: map.continent_rect[0][1],
-						left: map.continent_rect[0][0],
-						bottom: map.continent_rect[1][1],
-						right: map.continent_rect[1][0]
-					},
-					items: new Array()
-				};
-
-				// store data on the public id
-				dboPublicRegistry[pubid] = {
-					type: 'zone',
-					localid: zoneid
-				}
-
-				// store reference on the region
-				dboMapRegion[regionid].zones.push(zoneid);
-
-				// for each item(poi) in the zone
-				for(var key in map.points_of_interest){
-					var poi = map.points_of_interest[key];
-
-					if(poi.type == "vista"){
-						poi.name = "Discovered Vista";
-					}
-
-					pubid = GenPubID(poi.name);
-					var itemid = GenItemID();
-
-					// store in map item table
-					dboMapItem[itemid] = {
-						pubid: pubid,
-						itemid: itemid,
-						zoneid: zoneid,
-						type: poi.type,
-						name: poi.name,
-						pos: {
-							x: poi.coord[0],
-							y: poi.coord[1],
-						},
-						level: 0
-					}
-
-					// store in public id table
-					dboPublicRegistry[pubid] = {
-						type: 'item',
-						localid: itemid
-					}
-
-					// store reference on the zone
-					dboMapZone[zoneid].items.push(itemid);
-				}
-
-				// for each item(task) in the zone
-				for(var key in map.tasks){
-					var task = map.tasks[key];
-
-					pubid = GenPubID(task.objective);
-					var itemid = GenItemID();
-
-					// store in map item table
-					dboMapItem[itemid] = {
-						pubid: pubid,
-						itemid: itemid,
-						zoneid: zoneid,
-						type: 'task',
-						name: task.objective,
-						pos: {
-							x: task.coord[0],
-							y: task.coord[1],
-						},
-						level: task.level
-					}
-
-					// store in public id table
-					dboPublicRegistry[pubid] = {
-						type: 'item',
-						localid: itemid
-					}
-
-					// store reference on the zone
-					dboMapZone[zoneid].items.push(itemid);
-				}
-
-				for(var key in map.skill_challenges){
-					var skill = map.skill_challenges[key];
-
-					pubid = GenPubID("Skill Challenge");
-					var itemid = GenItemID();
-
-					// store in map item table
-					dboMapItem[itemid] = {
-						pubid: pubid,
-						itemid: itemid,
-						zoneid: zoneid,
-						type: 'skill',
-						name: "Skill Challenge",
-						pos: {
-							x: skill.coord[0],
-							y: skill.coord[1],
-						},
-						level: 0
-					}
-
-					// store in public id table
-					dboPublicRegistry[pubid] = {
-						type: 'item',
-						localid: itemid
-					}
-
-					// store reference on the zone
-					dboMapZone[zoneid].items.push(itemid);
-				}
-			}
-		}
-		console.log("dboPublicRegistry=\n"+JSON.stringify(dboPublicRegistry, null, '\t'));
-		console.log("dboMapItem=\n"+JSON.stringify(dboMapItem, null, '\t'));
-		console.log("dboMapZone=\n"+JSON.stringify(dboMapZone, null, '\t'));
-		console.log("dboMapRegion=\n"+JSON.stringify(dboMapRegion, null, '\t'));
-		console.log("dboMapInfo=\n"+JSON.stringify(dboMapInfo, null, '\t'));
-
-
-////// SPLIT
-
 
 		var waypointIcon = {
 			url: "images/icon_waypoint.png",
@@ -734,7 +480,110 @@ $(document).ready(function(){
 		}
 	});
 
-	var lastZoom = gmap.getZoom();
+
+
+	// map center
+	var validTarget = false;
+	if(typeof URLquery.target != 'undefined'){
+		for(var i = 0; i < URLquery.target.length && !validTarget; ++i)
+		{
+			// try each target in order
+			// is it an pubid target?
+			if(URLquery.target[i] in dboPublicRegistry)
+			{
+				var entry = dboPublicRegistry[URLquery.target[i]];
+				var px;
+				var py;
+				if(entry.type == "item"){
+					var itemData = dboMapItem[entry.localid];
+					px = itemData.pos.x;
+					py = itemData.pos.y;
+				}else if(entry.type == "zone"){
+					var zoneData = dboMapZone[entry.localid];
+					px = (zoneData.area.right + zoneData.area.left) / 2;
+					py = (zoneData.area.bottom + zoneData.area.top) / 2;
+				}else if(enrty.type == "region"){
+					var regionData = dboMapRegion[entry.localid];
+					px = regionData.label.x;
+					py = regionData.label.y;
+				}
+
+				if(px && py){
+					console.log("valid center");
+					gmap.setCenter(p2ll(new google.maps.Point(px, py)));
+					validTarget = true;
+				}
+			}else
+			{
+				var match = URLquery.target[i].match(/(\d.*)\,(\d.*)/);
+				console.log(match);
+
+				if(match){
+					var px = parseInt(match[1], 10);
+					var py = parseInt(match[2], 10);
+					if(centerx && centery){
+						console.log("valid center");
+						gmap.setCenter(p2ll(new google.maps.Point(px, py)));
+						validTarget = true;
+					}	
+				}
+			}
+		}
+	}
+	if(!validTarget)
+	{
+		// centering map at start
+		gmap.setCenter(p2ll(new google.maps.Point(mapSize/2, mapSize/2)));
+	}
+
+	// hold map in place
+	google.maps.event.addListener(gmap, 'center_changed', function(){
+		var bounds = gmap.getBounds();
+		var ne = ll2p(bounds.getNorthEast());
+		var sw = ll2p(bounds.getSouthWest());
+		var pos = ll2p(gmap.getCenter());
+		//console.log("center: " + pos.x + ", " + pos.y);
+		//console.log("NE: " + ne.x + ", " + ne.y);
+		//console.log("SW: " + sw.x + ", " + sw.y);
+
+		var force = false;
+
+		if(sw.y - ne.y >= mapSize){
+			if(pos.y != mapSize/2){
+				pos.y = mapSize/2;
+				force = true;
+			}
+		}else if(ne.y < 0){
+			pos.y -= ne.y;
+			force = true;
+		}else if(sw.y > mapSize){
+			pos.y -= (sw.y - mapSize);
+			force = true;
+		}
+
+		if(ne.x - sw.x >= mapSize){
+			if(pos.x != mapSize/2){
+				pos.x = mapSize/2;
+				force = true;
+			}
+		}else if(sw.x < 0){
+			pos.x -= sw.x;
+			force = true;
+		}else if(ne.x > mapSize){
+			pos.x -= (ne.x - mapSize);
+			force = true;
+		}
+
+		if(force == true){
+			//console.log("set center: " + pos.x + ", " + pos.y);
+			gmap.setCenter(p2ll(pos));
+			
+		}
+
+	});
+
+
+		var lastZoom = gmap.getZoom();
 
 	function doAllMarkers(action, state, start){
 		state = typeof state != 'undefined' ? state : 0;
@@ -826,102 +675,18 @@ $(document).ready(function(){
 				marker.setVisible(true);
 			});
 		}
-
-		if(gmap.getZoom() <= pathZoom && lastZoom > pathZoom){
-			for (var i = allPaths.length - 1; i >= 0; i--) {
-				var path = allPaths[i];
-				path.setVisible(false);
-			};
-			editPath = null;
-		}else if(gmap.getZoom() > pathZoom && lastZoom <= pathZoom ){
-			for (var i = allPaths.length - 1; i >= 0; i--) {
-				var path = allPaths[i];
-				path.setVisible(true);
-			};
-		}
-
 		lastZoom = gmap.getZoom();
 	});
 
-	// map center
-	var validTarget = false;
-	if(typeof URLquery.target != 'undefined'){
-		for(var i = 0; i < URLquery.target.length && !validTarget; ++i)
-		{
-			// try each target in order
-			// is it an pubid target?
-			if(URLquery.target[i] in dboPublicRegistry)
-			{
-				// todo:
-				// currently publicRegistry doesn't exist at this point. Once I've finalized it, it should be loaded before this .js file executes.
-			}else
-			{
-				var match = URLquery.target[i].match(/(\d.*)\,(\d.*)/);
-				console.log(match);
-
-				if(match){
-					var centerx = parseInt(match[1], 10);
-					var centery = parseInt(match[2], 10);
-					if(centerx && centery){
-						console.log("valid center");
-						gmap.setCenter(p2ll(new google.maps.Point(centerx, centery)));
-						validTarget = true;
-					}	
-				}
+	if(typeof URLquery.zoom != 'undefined'){
+		for(var i = 0; i < URLquery.zoom.length; ++i){
+			var tempZoom = parseInt(URLquery.zoom[i]);
+			if(tempZoom && tempZoom >= gmap.minZoom && tempZoom <= gmap.maxZoom){
+				gmap.setZoom(tempZoom);
+				break;
 			}
 		}
 	}
-	if(!validTarget)
-	{
-		// centering map at start
-		gmap.setCenter(p2ll(new google.maps.Point(mapSize/2, mapSize/2)));
-	}
-
-	// hold map in place
-	google.maps.event.addListener(gmap, 'center_changed', function(){
-		var bounds = gmap.getBounds();
-		var ne = ll2p(bounds.getNorthEast());
-		var sw = ll2p(bounds.getSouthWest());
-		var pos = ll2p(gmap.getCenter());
-		//console.log("center: " + pos.x + ", " + pos.y);
-		//console.log("NE: " + ne.x + ", " + ne.y);
-		//console.log("SW: " + sw.x + ", " + sw.y);
-
-		var force = false;
-
-		if(sw.y - ne.y >= mapSize){
-			if(pos.y != mapSize/2){
-				pos.y = mapSize/2;
-				force = true;
-			}
-		}else if(ne.y < 0){
-			pos.y -= ne.y;
-			force = true;
-		}else if(sw.y > mapSize){
-			pos.y -= (sw.y - mapSize);
-			force = true;
-		}
-
-		if(ne.x - sw.x >= mapSize){
-			if(pos.x != mapSize/2){
-				pos.x = mapSize/2;
-				force = true;
-			}
-		}else if(sw.x < 0){
-			pos.x -= sw.x;
-			force = true;
-		}else if(ne.x > mapSize){
-			pos.x -= (ne.x - mapSize);
-			force = true;
-		}
-
-		if(force == true){
-			//console.log("set center: " + pos.x + ", " + pos.y);
-			gmap.setCenter(p2ll(pos));
-			
-		}
-
-	});
 
 
 
@@ -989,7 +754,6 @@ $(document).ready(function(){
 
 	google.maps.event.addListener(gmap, 'center_changed', function(){
 		var center = ll2p(gmap.getCenter());
-		console.log(currentZone);
 		if(currentZone == null || 
 			!(
 				map_info[currentZone].map_rect[0].x < center.x &&

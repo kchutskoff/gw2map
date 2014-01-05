@@ -1,0 +1,279 @@
+<html>
+<head>
+	<title></title>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+	<script>
+	$(document).ready(function(){
+
+		function nameToPubID(name, length){
+			// strip special characters, make it lowercase, split into tokens
+			var tokens = name.replace(/[^\w\s]/gi, '').toLowerCase().split(' ');
+			// add tokens to at most length long
+			var out = tokens[0].substring(0,length); // in case first token is already too long
+			// loop through tokens, as long as the next token doesn't make the total length longer than length
+			for(var i = 1; i < tokens.length && (out.length + 1 + tokens[i].length) <= length; ++i){
+				out += "-" + tokens[i];
+			}
+			return out;
+		}
+
+		// closure to prefix duplicate names with numbers
+		function uniquePubIDGen(length){
+			var NameCount = []; // keep track of previously used names (part of closure)
+			return function(name){
+				var tempID = nameToPubID(name, length); // get the pubID
+				if(typeof NameCount[name] === 'undefined'){ // if no one else has used it
+					NameCount[name] = 1; // start using it
+				}else{
+					tempID += (++NameCount[name]); // otherwise add a number to your ID and incrase the count
+				}
+				return tempID; // return the ID
+			}
+		}
+
+		function uniqueIDGen(){
+			var current = 0;
+			return function(){
+				return current++;
+			}
+		}
+
+		function JSONtoHTML(json){
+			return '<pre>'+json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')+'</pre>';
+		}
+
+		var map_whitelist = [
+			"Dredgehaunt Cliffs",
+			"Lornar's Pass",
+			"Wayfarer Foothills",
+			"Timberline Falls",
+			"Frostgorge Sound",
+			"Snowden Drifts",
+			"Hoelbrak",
+			"Eye of the North",
+			"Plains of Ashford",
+			"Blazeridge Steppes",
+			"Fields of Ruin",
+			"Fireheart Rise",
+			"Iron Marches",
+			"Diessa Plateau",
+			"Black Citadel",
+			"Straits of Devastation",
+			"Cursed Shore",
+			"Malchor's Leap",
+			"Queensdale",
+			"Harathi Hinterlands",
+			"Divinity's Reach",
+			"Kessex Hills",
+			"Gendarran Fields",
+			"Lion's Arch",
+			"Bloodtide Coast",
+			"Southsun Cove",
+			"Caledon Forest",
+			"Metrica Province",
+			"Brisban Wildlands",
+			"The Grove",
+			"Rata Sum",
+			"Mount Maelstrom",
+			"Sparkfly Fen",
+		];
+
+		var dboPublicRegistry = {};
+		var dboMapItem = {};
+		var dboMapZone = {};
+		var dboMapRegion = {};
+		var dboMapInfo = {};
+
+		$.getJSON( "https://api.guildwars2.com/v1/map_floor.json?continent_id=1&floor=0", function( data ) {
+
+			// create unique ID generators
+			var GenPubID = uniquePubIDGen(30);
+			var GenRegionID = uniqueIDGen();
+			var GenZoneID = uniqueIDGen();
+			var GenItemID = uniqueIDGen();
+			var pubid;
+
+			// get the size of the map
+			dboMapInfo.size = {x: data.texture_dims[0], y: data.texture_dims[1]};
+
+			// for each region in the dataset
+			for(var rkey in data.regions){
+				var region = data.regions[rkey];
+
+				// generate a public and region id
+				pubid = GenPubID(region.name);
+				var regionid = GenRegionID(); 
+
+				// store the data on the region id key
+				dboMapRegion[regionid] = {
+					pubid: pubid,
+					regionid: regionid,
+					name: region.name, 
+					label: {
+						x: region.label_coord[0], 
+						y: region.label_coord[1]
+					},
+					zones: new Array()
+				};
+
+				// store the data on the public id
+				dboPublicRegistry[pubid] = {
+					type: 'region',
+					localid: regionid
+				}
+
+				// for each zone in the region
+				for(var mkey in region.maps){
+					var map = region.maps[mkey];
+
+					if($.inArray(map.name, map_whitelist) == -1){
+						continue; // ignore unwanted maps
+					}
+
+					// generate a public and zone id
+					pubid = GenPubID(map.name);
+					var zoneid = GenZoneID();
+
+					// store data on the zone id key
+					dboMapZone[zoneid] = {
+						pubid: pubid,
+						zoneid: zoneid,
+						regionid: regionid,
+						name: map.name, 
+						level: {
+							min: map.min_level,
+							max: map.max_level
+						},
+						area: {
+							top: map.continent_rect[0][1],
+							left: map.continent_rect[0][0],
+							bottom: map.continent_rect[1][1],
+							right: map.continent_rect[1][0]
+						},
+						items: new Array()
+					};
+
+					// store data on the public id
+					dboPublicRegistry[pubid] = {
+						type: 'zone',
+						localid: zoneid
+					}
+
+					// store reference on the region
+					dboMapRegion[regionid].zones.push(zoneid);
+
+					// for each item(poi) in the zone
+					for(var key in map.points_of_interest){
+						var poi = map.points_of_interest[key];
+
+						if(poi.type == "vista"){
+							poi.name = "Discovered Vista";
+						}
+
+						pubid = GenPubID(poi.name);
+						var itemid = GenItemID();
+
+						// store in map item table
+						dboMapItem[itemid] = {
+							pubid: pubid,
+							itemid: itemid,
+							zoneid: zoneid,
+							type: poi.type,
+							name: poi.name,
+							pos: {
+								x: poi.coord[0],
+								y: poi.coord[1],
+							},
+							level: 0
+						}
+
+						// store in public id table
+						dboPublicRegistry[pubid] = {
+							type: 'item',
+							localid: itemid
+						}
+
+						// store reference on the zone
+						dboMapZone[zoneid].items.push(itemid);
+					}
+
+					// for each item(task) in the zone
+					for(var key in map.tasks){
+						var task = map.tasks[key];
+
+						pubid = GenPubID(task.objective);
+						var itemid = GenItemID();
+
+						// store in map item table
+						dboMapItem[itemid] = {
+							pubid: pubid,
+							itemid: itemid,
+							zoneid: zoneid,
+							type: 'task',
+							name: task.objective,
+							pos: {
+								x: task.coord[0],
+								y: task.coord[1],
+							},
+							level: task.level
+						}
+
+						// store in public id table
+						dboPublicRegistry[pubid] = {
+							type: 'item',
+							localid: itemid
+						}
+
+						// store reference on the zone
+						dboMapZone[zoneid].items.push(itemid);
+					}
+
+					for(var key in map.skill_challenges){
+						var skill = map.skill_challenges[key];
+
+						pubid = GenPubID("Skill Challenge");
+						var itemid = GenItemID();
+
+						// store in map item table
+						dboMapItem[itemid] = {
+							pubid: pubid,
+							itemid: itemid,
+							zoneid: zoneid,
+							type: 'skill',
+							name: "Skill Challenge",
+							pos: {
+								x: skill.coord[0],
+								y: skill.coord[1],
+							},
+							level: 0
+						}
+
+						// store in public id table
+						dboPublicRegistry[pubid] = {
+							type: 'item',
+							localid: itemid
+						}
+
+						// store reference on the zone
+						dboMapZone[zoneid].items.push(itemid);
+					}
+				}
+			}
+			var pubOut = JSON.stringify(dboPublicRegistry, null, '\t');
+			var itemOut = JSON.stringify(dboMapItem, null, '\t');
+			var zoneOut = JSON.stringify(dboMapZone, null, '\t');
+			var regionOut = JSON.stringify(dboMapRegion, null, '\t');
+			var infoOut = JSON.stringify(dboMapInfo, null, '\t');
+			$('body').append(JSONtoHTML("var dboPublicRegistry = " + pubOut + ';'));
+			$('body').append(JSONtoHTML("var dboMapItem = " + itemOut + ';'));
+			$('body').append(JSONtoHTML("var dboMapZone = " + zoneOut + ';'));
+			$('body').append(JSONtoHTML("var dboMapRegion = " + regionOut + ';'));
+			$('body').append(JSONtoHTML("var dboMapInfo = " + infoOut + ';'));
+		});
+	});
+	</script>
+</head>
+<body>
+
+</body>
+</html>
