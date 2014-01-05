@@ -98,7 +98,7 @@
 		$.getJSON( "https://api.guildwars2.com/v1/map_floor.json?continent_id=1&floor=0", function( data ) {
 
 			// create unique ID generators
-			var GenPubID = uniquePubIDGen(15);
+			var GenPubID = uniquePubIDGen(25);
 			var GenRegionID = uniqueIDGen();
 			var GenZoneID = uniqueIDGen();
 			var GenItemID = uniqueIDGen();
@@ -178,10 +178,12 @@
 						var poi = map.points_of_interest[key];
 
 						if(poi.type == "vista"){
+							pubid = GenPubID("vista "+map.name);
 							poi.name = "Discovered Vista";
+						}else{
+							pubid = GenPubID(poi.name);
 						}
 
-						pubid = GenPubID(poi.name);
 						var itemid = GenItemID();
 
 						// store in map item table
@@ -242,7 +244,7 @@
 					for(var key in map.skill_challenges){
 						var skill = map.skill_challenges[key];
 
-						pubid = GenPubID("Skill Challenge");
+						pubid = GenPubID("Skill " + map.name);
 						var itemid = GenItemID();
 
 						// store in map item table
