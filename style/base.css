@@ -92,6 +92,7 @@ html, body, #gw2map{
 	border-width: 2px;
 
 	color: white;
+	font-family: 'Menomonia';
 
 	position: fixed;
 	top: 60px;
@@ -106,12 +107,26 @@ html, body, #gw2map{
 	cursor: default;
 }
 #map_controls_title{
-	font-family: 'Menomonia';
 	color: #FC7;
 	font-size: 1.2em;
 	white-space: nowrap;
 
 	margin-bottom: 10px;
+}
+
+#map_controls_edit{
+	position: absolute;
+	top: 4px;
+	right: 4px;
+	display: none;
+
+	cursor: pointer;
+}
+
+#map_controls_error{
+	display: none;
+	color: #C00;
+	font-style: italic;
 }
 
 canvas{

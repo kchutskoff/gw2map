@@ -129,6 +129,10 @@ if(typeof URLquery.zoom != 'undefined'){
 	}
 }
 
+if(typeof URLquery.edit != 'undefined'){
+	$('#map_controls_edit').show();
+}
+
 console.log(startMapX + ", " + startMapY + ", " + startMapZoom);
 
 
@@ -224,6 +228,13 @@ $(document).ready(function(){
 	mapMarkers['task'] = new Array();
 	mapMarkers['skill'] = new Array();
 	mapMarkers['vista'] = new Array();
+
+	var dboMapPaths = {}; // paths indexed by zoneid, eventually from an external file
+	// for testing
+	for(var key in dboMapZone){
+		dboMapPaths[key] = {};
+		dboMapPaths[key]['0'] = {name: "Map Exploration"};
+	}
 
 // Organize it like a DB would in tables (or arrays of objects on a lookup-key).
 // example follows:
@@ -501,6 +512,30 @@ $(document).ready(function(){
 	// detect zone stuff
 
 	var currentZone = null;
+	var isEditMode = false;
+	var isLocked = false;
+
+	function updateControls(){
+		if(currentZone != null){
+			// get paths in the zone
+			if(currentZone.zoneid in dboMapPaths && dboMapPaths[currentZone.zoneid].length != 0){
+				var currentPaths = dboMapPaths[currentZone.zoneid];
+				$('#map_controls_content').empty();
+				for(var key in currentPaths){
+					var path = currentPaths[key];
+
+					$('#map_controls_content').append("<div>"+path.name+"</div>");
+				}
+			}else{
+				// no paths for zone
+				$('#map_controls_error').text("This zone does not have any routes.")
+				$('#map_controls_error').show();
+			}
+		}else{
+			$('#map_controls_error').hide();
+			$('#map_controls_content').empty();
+		}
+	}
 
 	function updateCurrentZone(){
 		var center = ll2p(gmap.getCenter());
@@ -523,11 +558,13 @@ $(document).ready(function(){
 					currentZone = zone;
 					$('#map_title').show()
 					$('#map_title_content').text(zone.name);
-					console.log(zone.pubid + ' - '+zone.zoneid);
+
+					updateControls();
 					return;
 				}
 			}
 			currentZone = null;
+			updateControls();
 			$('#map_title').hide();
 		}	
 	};
