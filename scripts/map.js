@@ -283,7 +283,7 @@ $(document).ready(function(){
 	var dboMapInfo = {};
 */
 
-	$.getJSON( "https://api.guildwars2.com/v1/map_floor.json?continent_id=1&floor=0", function( data ) {
+//	$.getJSON( "https://api.guildwars2.com/v1/map_floor.json?continent_id=1&floor=0", function( data ) {
 
 		var iconTypes = {};
 
@@ -591,7 +591,7 @@ $(document).ready(function(){
 			});
 		}
 		*/
-	});
+//	});
 
 
 
