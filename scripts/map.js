@@ -214,49 +214,12 @@ $(document).ready(function(){
 	gmap.mapTypes.set("1",tyria);
 //	gmap.mapTypes.set("2",mists);
 
-	var markers_waypoint = new Array();
-	var markers_point_of_interest = new Array();
-	var markers_heart = new Array();
-	var markers_skill = new Array();
-	var markers_vista = new Array();
-	var map_info = new Array();
-
-	var map_whitelist = [
-		"Dredgehaunt Cliffs",
-		"Lornar's Pass",
-		"Wayfarer Foothills",
-		"Timberline Falls",
-		"Frostgorge Sound",
-		"Snowden Drifts",
-		"Hoelbrak",
-		"Eye of the North",
-		"Plains of Ashford",
-		"Blazeridge Steppes",
-		"Fields of Ruin",
-		"Fireheart Rise",
-		"Iron Marches",
-		"Diessa Plateau",
-		"Black Citadel",
-		"Straits of Devastation",
-		"Cursed Shore",
-		"Malchor's Leap",
-		"Queensdale",
-		"Harathi Hinterlands",
-		"Divinity's Reach",
-		"Kessex Hills",
-		"Gendarran Fields",
-		"Lion's Arch",
-		"Bloodtide Coast",
-		"Southsun Cove",
-		"Caledon Forest",
-		"Metrica Province",
-		"Brisban Wildlands",
-		"The Grove",
-		"Rata Sum",
-		"Mount Maelstrom",
-		"Sparkfly Fen",
-	];
-
+	var mapMarkers = {};
+	mapMarkers['waypoint'] = new Array();
+	mapMarkers['landmark'] = new Array();
+	mapMarkers['task'] = new Array();
+	mapMarkers['skill'] = new Array();
+	mapMarkers['vista'] = new Array();
 
 // Organize it like a DB would in tables (or arrays of objects on a lookup-key).
 // example follows:
@@ -322,37 +285,39 @@ $(document).ready(function(){
 
 	$.getJSON( "https://api.guildwars2.com/v1/map_floor.json?continent_id=1&floor=0", function( data ) {
 
-		var waypointIcon = {
+		var iconTypes = {};
+
+		iconTypes["waypoint"] = {
 			url: "images/icon_waypoint.png",
 			anchor: new google.maps.Point(14,14),
 			scaledSize: new google.maps.Size(28,28),
 		};
 
-		var waypointHoverIcon = {
+		iconTypes["waypointHover"] = {
 			url: "images/icon_waypoint_hover.png",
 			anchor: new google.maps.Point(14,14),
 			scaledSize: new google.maps.Size(28,28),
 		};
 
-		var landmarkIcon = {
+		iconTypes["landmark"] = {
 			url: "images/icon_POI.png",
 			anchor: new google.maps.Point(11,11),
 			scaledSize: new google.maps.Size(22,22),
 		};
 
-		var vistaIcon = {
+		iconTypes["vista"] = {
 			url: "images/icon_vista.png",
 			anchor: new google.maps.Point(11,11),
 			scaledSize: new google.maps.Size(22,22),
 		};
 
-		var skillpointIcon = {
+		iconTypes["skill"] = {
 			url: "images/icon_skillpoint.png",
 			anchor: new google.maps.Point(11,11),
 			scaledSize: new google.maps.Size(22,22),
 		};
 
-		var taskIcon = {
+		iconTypes["task"] = {
 			url: "images/icon_heart.png",
 			anchor: new google.maps.Point(11,11),
 			scaledSize: new google.maps.Size(22,22),
@@ -366,7 +331,7 @@ $(document).ready(function(){
 					queue: false,
 				});
 				if(target.type == "waypoint"){
-					target.setIcon(waypointHoverIcon);
+					target.setIcon(iconTypes['waypointHover']);
 				}
 
 				var proj = pixelOverlay.getProjection();
@@ -395,7 +360,7 @@ $(document).ready(function(){
 		function makeOutFunc(target){
 			return function(e){ 
 				if(target.type == "waypoint"){
-					target.setIcon(waypointIcon);
+					target.setIcon(iconTypes['waypoint']);
 				}
 				$('#hover_window').stop().fadeOut({
 					duration:200,
@@ -404,6 +369,76 @@ $(document).ready(function(){
 			};
 		}
 
+		// for each region
+
+		for(var key in dboMapRegion){
+			var region = dboMapRegion[key];
+
+			new MapLabel({
+				map: gmap,
+				fontColor: '#d6bb70',
+				fontSize: 24,
+				fontFamily: 'Menomonia',
+				strokeWeight: 3,
+				strokeColor: '#000',
+				maxZoom: 6,
+				minZoom: 6,
+				position: toLatLng(region.label.x, region.label.y),
+				text: region.name,
+				zIndex: 100,
+			});
+		}
+
+		// for each zone
+		for(var key in dboMapZone){
+			var zone = dboMapZone[key];
+
+			new MapLabel({
+				map: gmap,
+				fontColor: '#d6bb70',
+				fontSize: 24,
+				fontFamily: 'Menomonia',
+				strokeWeight: 3,
+				strokeColor: '#000',
+				maxZoom: 9,
+				minZoom: 7,
+				position: toLatLng((zone.area.left + zone.area.right) / 2, (zone.area.top + zone.area.bottom) / 2),
+				text: zone.name,
+				level: zone.level.min == 0 ? null : "(" + zone.level.min + " - " + zone.level.max + ")",
+				levelColor: '#777',
+				levelSize: 20,
+				zIndex: 100,
+			});
+		}
+
+		// for each item
+		for(var key in dboMapItem){
+			var item = dboMapItem[key];
+
+			var itemName = item.name;
+			if(item.type == 'task'){
+				itemName += String.fromCharCode(160,160) + "<font style='color:#BBB;font-size:0.9em;'>(" + item.level + ")</font>";
+			}
+
+			if(typeof iconTypes[item.type] != 'undefined'){
+				tempMarker = new google.maps.Marker({
+					position: toLatLng(item.pos.x, item.pos.y),
+					draggable: false,
+					map: gmap,
+					icon: iconTypes[item.type],
+					visible: markersStartVisible,
+					name: itemName,
+					type: item.type,
+					zIndex: 100,
+				});
+
+				google.maps.event.addListener(tempMarker, "mouseover", makeOverFunc(tempMarker));
+				google.maps.event.addListener(tempMarker, "mouseout", makeOutFunc(tempMarker));
+
+				mapMarkers[item.type].push(tempMarker);
+			}
+		}
+/*
 		for(var rkey in data.regions){
 			var region = data.regions[rkey];
 			for(var mkey in region.maps){
@@ -555,6 +590,7 @@ $(document).ready(function(){
 				zIndex: 100,
 			});
 		}
+		*/
 	});
 
 
@@ -616,8 +652,8 @@ $(document).ready(function(){
 		var max_count = 20;
 		var delay = 0;
 		if(state == 0){
-			for (var i = start; i < markers_waypoint.length; i++) {
-				action(markers_waypoint[i]);
+			for (var i = start; i < mapMarkers['waypoint'].length; i++) {
+				action(mapMarkers['waypoint'][i]);
 
 				count++;
 				if(count > max_count)
@@ -630,8 +666,8 @@ $(document).ready(function(){
 			start = 0;
 		}
 		if(state == 1){
-			for (var i = start; i < markers_skill.length; i++) {
-				action(markers_skill[i]);
+			for (var i = start; i < mapMarkers['skill'].length; i++) {
+				action(mapMarkers['skill'][i]);
 
 				count++;
 				if(count > max_count)
@@ -644,8 +680,8 @@ $(document).ready(function(){
 			start = 0;
 		}
 		if(state == 2){
-			for (var i = start; i < markers_heart.length; i++) {
-				action(markers_heart[i]);
+			for (var i = start; i < mapMarkers['task'].length; i++) {
+				action(mapMarkers['task'][i]);
 
 				count++;
 				if(count > max_count)
@@ -658,8 +694,8 @@ $(document).ready(function(){
 			start = 0;
 		}
 		if(state == 3){
-			for (var i = start; i < markers_vista.length; i++) {
-				action(markers_vista[i]);
+			for (var i = start; i < mapMarkers['vista'].length; i++) {
+				action(mapMarkers['vista'][i]);
 
 				count++;
 				if(count > max_count)
@@ -672,8 +708,8 @@ $(document).ready(function(){
 			start = 0;
 		}
 		if(state == 4){
-			for (var i = start; i < markers_point_of_interest.length; i++) {
-				action(markers_point_of_interest[i]);
+			for (var i = start; i < mapMarkers['landmark'].length; i++) {
+				action(mapMarkers['landmark'][i]);
 
 				count++;
 				if(count > max_count)
@@ -763,7 +799,7 @@ $(document).ready(function(){
 	
 
 	// detect zone stuff
-
+/*
 	var currentZone = null;
 
 	google.maps.event.addListener(gmap, 'center_changed', function(){
@@ -792,5 +828,5 @@ $(document).ready(function(){
 			$('#map_title').hide();
 		}	
 	})
-
+*/
 });
