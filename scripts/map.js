@@ -66,7 +66,7 @@ function fromPointToLatLng(point, max_zoom){
 var minZoom = 5;
 var maxZoom = 11;
 var mapSize = Math.max(dboMapInfo.size.x, dboMapInfo.size.y);
-var markerZoom = 8;
+var markerZoom = 9;
 var startMapX = mapSize/2;
 var startMapY = mapSize/2;
 var startMapZoom = 8;
@@ -424,9 +424,9 @@ $(document).ready(function(){
 				tempMarker = new google.maps.Marker({
 					position: toLatLng(item.pos.x, item.pos.y),
 					draggable: false,
-					map: gmap,
+					//map: gmap,
 					icon: iconTypes[item.type],
-					visible: markersStartVisible,
+					//visible: true,
 					name: itemName,
 					type: item.type,
 					zIndex: 100,
@@ -438,6 +438,17 @@ $(document).ready(function(){
 				mapMarkers[item.type].push(tempMarker);
 			}
 		}
+
+		var MarkerMan = new MarkerManager(gmap, {borderPadding: 0});
+		google.maps.event.addListener(MarkerMan, 'loaded', function(){
+			for(var key in mapMarkers){
+				MarkerMan.addMarkers(mapMarkers[key], markerZoom);
+			}
+			MarkerMan.refresh();
+		});
+
+		
+		
 /*
 		for(var rkey in data.regions){
 			var region = data.regions[rkey];
@@ -642,7 +653,7 @@ $(document).ready(function(){
 
 	});
 
-
+/*
 	var lastZoom = startMapZoom;
 
 	function doAllMarkers(action, state, start){
@@ -738,7 +749,7 @@ $(document).ready(function(){
 	});
 
 
-
+*/
 
 
 
