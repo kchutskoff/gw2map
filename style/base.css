@@ -34,12 +34,26 @@ html, body, #gw2map{
 	border-radius: 2px;
 	white-space: nowrap;
 	font-family: 'Menomonia';
+
+	-webkit-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
+
+	cursor: default;
 }
 
 #map_title{
 	position: absolute;
 	left: 50%;
 	top: 5px;
+
+	-webkit-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
+
+	cursor: default;
 }
 
 #map_title_inner{
@@ -62,4 +76,47 @@ html, body, #gw2map{
 	font-family: 'Menomonia';
 	color: #FC7;
 	font-size: 1.3em;
+}
+
+#map_controls{
+	width: 180px;
+	background-color: rgb(26,39,46);
+    background-color: rgba(26,39,46,0.8);
+	padding: 5px;
+
+	border-color: rgb(0,0,0);
+	border-color: rgba(0,0,0,0.8);
+	border-top-style: solid;
+	border-right-style: solid;
+	border-bottom-style: solid;
+	border-width: 2px;
+
+	color: white;
+
+	position: fixed;
+	top: 60px;
+	left: 0px;
+	z-index: 900;
+
+	-webkit-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
+
+	cursor: default;
+}
+#map_controls_title{
+	font-family: 'Menomonia';
+	color: #FC7;
+	font-size: 1.2em;
+	white-space: nowrap;
+
+	margin-bottom: 10px;
+}
+
+canvas{
+	-webkit-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
 }
