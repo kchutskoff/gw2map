@@ -3,6 +3,27 @@
 	<title></title>
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
 	<script>
+
+	function codeToViewable(string){
+		return '<pre>'+string.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')+'</pre>';
+	}
+
+	function codeToCompact(string){
+		return string.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\t/g,'').replace(/\n/g,'');
+	}
+
+	var dboPublicRegistry = {};
+	var dboMapItem = {};
+	var dboMapZone = {};
+	var dboMapRegion = {};
+	var dboMapInfo = {};
+
+	var pubOut;
+	var itemOut;
+	var zoneOut;
+	var regionOut;
+	var infoOut;
+
 	$(document).ready(function(){
 
 		function nameToPubID(name, length){
@@ -36,10 +57,6 @@
 			return function(){
 				return current++;
 			}
-		}
-
-		function JSONtoHTML(json){
-			return '<pre>'+json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')+'</pre>';
 		}
 
 		var map_whitelist = [
@@ -78,16 +95,10 @@
 			"Sparkfly Fen",
 		];
 
-		var dboPublicRegistry = {};
-		var dboMapItem = {};
-		var dboMapZone = {};
-		var dboMapRegion = {};
-		var dboMapInfo = {};
-
 		$.getJSON( "https://api.guildwars2.com/v1/map_floor.json?continent_id=1&floor=0", function( data ) {
 
 			// create unique ID generators
-			var GenPubID = uniquePubIDGen(30);
+			var GenPubID = uniquePubIDGen(15);
 			var GenRegionID = uniqueIDGen();
 			var GenZoneID = uniqueIDGen();
 			var GenItemID = uniqueIDGen();
@@ -259,21 +270,42 @@
 					}
 				}
 			}
-			var pubOut = JSON.stringify(dboPublicRegistry, null, '\t');
-			var itemOut = JSON.stringify(dboMapItem, null, '\t');
-			var zoneOut = JSON.stringify(dboMapZone, null, '\t');
-			var regionOut = JSON.stringify(dboMapRegion, null, '\t');
-			var infoOut = JSON.stringify(dboMapInfo, null, '\t');
-			$('body').append(JSONtoHTML("var dboPublicRegistry = " + pubOut + ';'));
-			$('body').append(JSONtoHTML("var dboMapItem = " + itemOut + ';'));
-			$('body').append(JSONtoHTML("var dboMapZone = " + zoneOut + ';'));
-			$('body').append(JSONtoHTML("var dboMapRegion = " + regionOut + ';'));
-			$('body').append(JSONtoHTML("var dboMapInfo = " + infoOut + ';'));
+			pubOut = "var dboPublicRegistry = " + JSON.stringify(dboPublicRegistry, null, '\t') + ';';
+			itemOut = "var dboMapItem = " + JSON.stringify(dboMapItem, null, '\t') + ';';
+			zoneOut = "var dboMapZone = " + JSON.stringify(dboMapZone, null, '\t') + ';';
+			regionOut = "var dboMapRegion = " + JSON.stringify(dboMapRegion, null, '\t') + ';';
+			infoOut = "var dboMapInfo = " + JSON.stringify(dboMapInfo, null, '\t') + ';';
+			$('#content').append(codeToViewable(pubOut));
+			$('#content').append(codeToViewable(itemOut));
+			$('#content').append(codeToViewable(zoneOut));
+			$('#content').append(codeToViewable(regionOut));
+			$('#content').append(codeToViewable(infoOut));
 		});
 	});
+
+	var compact = false;
+
+	function toggle(){
+		$('#content').empty();
+		if(compact){
+			$('#content').append(codeToViewable(pubOut));
+			$('#content').append(codeToViewable(itemOut));
+			$('#content').append(codeToViewable(zoneOut));
+			$('#content').append(codeToViewable(regionOut));
+			$('#content').append(codeToViewable(infoOut));
+		}else{
+			$('#content').append(codeToCompact(pubOut));
+			$('#content').append(codeToCompact(itemOut));
+			$('#content').append(codeToCompact(zoneOut));
+			$('#content').append(codeToCompact(regionOut));
+			$('#content').append(codeToCompact(infoOut));
+		}
+		compact = !compact;
+	}
 	</script>
 </head>
 <body>
-
+	<div style="position: fixed; top: 10px; right: 10px; background: lightgreen; cursor: hand; user-select: none; padding: 5px; -webkit-user-select: none;" onclick="toggle();">Toggle Compact</div>
+	<div id="content"></div>
 </body>
 </html>
