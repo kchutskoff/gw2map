@@ -25,12 +25,10 @@ function MapPath(map, data) {
 	google.maps.event.addListener(editPath.getPath(), 'insert_at', function(e){
 		if(!otherInput)
 		{
-			console.log("insert event");
 			var userInput = true;
 			that.insertAt(e, editPath.getPath().getAt(e), pathTypes[e-1]);
 			var userInput = false;
 		}else{
-			console.log("insert action");
 		}
 	});
 
@@ -69,9 +67,6 @@ function MapPath(map, data) {
 	});
 
 	google.maps.event.addListener(editPath, "rightclick", function(mpe){
-		console.log("PATH " + mpe.path);
-		console.log("EDGE " + mpe.edge);
-		console.log("VERT " + mpe.vertex);
 		if(mpe.edge){
 			pathTypes[mpe.edge]++;
 			if(pathTypes[mpe.edge] >= registeredTypes.length){
@@ -141,29 +136,19 @@ function MapPath(map, data) {
 	};
 
 	this.insertAt = function(index, position, type){
-		console.log("-- INSERT " + index + " --");
-		console.log(pathPoints);
-		console.log(userInput);
 		if(userInput)
 		{
-			console.log("insertAt called");
 			otherInput = true;
 			editPath.getPath().insertAt(index, position);
 			otherInput = false;
-		}else{
-			console.log("insertAt internal");
 		}
 		pathPoints.splice(index, 0, position);
 		pathTypes.splice(index, 0, type);
-		console.log(pathPoints);
-		console.log("-- REDRAW --");
 		this.redraw();
-		console.log("-- DONE --");
+
 	};
 
 	this.setAt = function(index, position, type){
-		console.log("-- SET --");
-		console.log(pathPoints);
 		if(!userInput)
 		{
 			otherInput = true;
@@ -172,15 +157,10 @@ function MapPath(map, data) {
 		}
 		pathPoints[index] = position;
 		pathTypes[index] = type;
-		console.log(pathPoints);
-		console.log("-- REDRAW --");
 		this.redraw();
-		console.log("-- DONE --");
 	};
 
 	this.removeAt = function(index){
-		console.log("-- REMOVE --");
-		console.log(pathPoints);
 		if(!userInput)
 		{
 			otherInput = true;
@@ -189,10 +169,7 @@ function MapPath(map, data) {
 		}
 		pathPoints.splice(index, 1);
 		pathTypes.splice(index, 1);
-		console.log(pathPoints);
-		console.log("-- REDRAW --");
 		this.redraw();
-		console.log("-- DONE --");
 	};
 
 	if(data.type){
@@ -211,8 +188,6 @@ function MapPath(map, data) {
 		};
 		var otherInput = false;
 		this.redraw();
-	}else{
-		console.error("WRONG TYPE");
 	}
 }
 

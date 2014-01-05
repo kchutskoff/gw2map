@@ -215,7 +215,6 @@ MapLabel.prototype.getVisible_ = function() {
 
   var mapZoom = map.getZoom();
   if (mapZoom < minZoom || mapZoom > maxZoom) {
-    console.log(this.get('text') + " hidden");
     return 'hidden';
   }
   return '';
