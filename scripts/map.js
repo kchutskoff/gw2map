@@ -502,7 +502,7 @@ $(document).ready(function(){
 					var zoneData = dboMapZone[entry.localid];
 					px = (zoneData.area.right + zoneData.area.left) / 2;
 					py = (zoneData.area.bottom + zoneData.area.top) / 2;
-				}else if(enrty.type == "region"){
+				}else if(entry.type == "region"){
 					var regionData = dboMapRegion[entry.localid];
 					px = regionData.label.x;
 					py = regionData.label.y;
