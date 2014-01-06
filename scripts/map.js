@@ -384,6 +384,22 @@ $(document).ready(function(){
 		};
 	}
 
+	function makeClickFunc(target){
+		return function(e){
+			$('#modal_dialog_title').text(target.name);
+
+			var output = "<p>Direct Link: " +  target.mapItem.pubid + "</p>";
+
+			if(target.type == "waypoint" || target.type == "landmark"){
+				output += "<p>Chat Code: " + toChatCode(target.mapItem.itemid).replace('&', '&amp;') + "</p>"; // todo need to use actual in-game ID.
+			}
+
+			$('#modal_dialog_content').html(output);
+
+			$('#modal_dialog').fadeIn();
+		}
+	}
+
 	// for each region
 
 	for(var key in dboMapRegion){
@@ -444,11 +460,13 @@ $(document).ready(function(){
 				//visible: true,
 				name: itemName,
 				type: item.type,
+				mapItem: item,
 				zIndex: 100,
 			});
 
 			google.maps.event.addListener(tempMarker, "mouseover", makeOverFunc(tempMarker));
 			google.maps.event.addListener(tempMarker, "mouseout", makeOutFunc(tempMarker));
+			google.maps.event.addListener(tempMarker, "click", makeClickFunc(tempMarker));
 
 			mapMarkers[item.type].push(tempMarker);
 		}
