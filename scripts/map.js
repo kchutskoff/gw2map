@@ -351,9 +351,8 @@ $(document).ready(function(){
 
 			var proj = pixelOverlay.getProjection();
 			var pixel = proj.fromLatLngToContainerPixel(target.getPosition());
-			var docWidth = $(document).width();
-			var floatWidth = $('#hover_window').width();
-			
+			var docWidth = $(window).width();
+			var floatWidth = $('#hover_window').width();			
 
 			if(Math.round(pixel.x) + floatWidth + 20 >= docWidth){
 				$('#hover_window').css({
