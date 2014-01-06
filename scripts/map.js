@@ -20,6 +20,11 @@ var URLquery = function(){
 
 // HELPER FUNCTIONS
 
+function toChatCode(id){
+	// convert id to 2 bytes, reverse bytes, add 0x04 to the front and 0x00 0x00 to the back, encode to base 64, surround in [& and ];
+	return '[&'+Base64.encode(String.fromCharCode(0x04, id % 256, Math.floor(id/256), 0x00, 0x00))+']';
+}
+
 function distanceFromSegment(p, a, b){
     var dx = b.x - a.x;
     var dy = b.y - a.y;
@@ -103,12 +108,11 @@ if(typeof URLquery.target != 'undefined'){
 		{
 			// position data, check if formatted as "number,number"
 			var match = URLquery.target[i].match(/(\d.*)\,(\d.*)/);
-			console.log(match);
 
 			if(match){
 				var tempX = parseInt(match[1], 10);
 				var tempY = parseInt(match[2], 10);
-				if(centerx && centery){
+				if(tempX && tempY){
 					startMapX = tempX;
 					startMapY = tempY;
 				}	
@@ -132,9 +136,6 @@ if(typeof URLquery.zoom != 'undefined'){
 if(typeof URLquery.edit != 'undefined'){
 	$('#map_controls_edit').show();
 }
-
-console.log(startMapX + ", " + startMapY + ", " + startMapZoom);
-
 
 // on page load
 $(document).ready(function(){
@@ -627,9 +628,6 @@ $(document).ready(function(){
 				type: 0,
 			},
 		],
-	});   
-	
-
-	
+	});   	
 
 });
