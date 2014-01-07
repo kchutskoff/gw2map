@@ -24,6 +24,9 @@
 	var regionOut;
 	var infoOut;
 
+	var dataObject = {};
+	var dataOut;
+
 	$(document).ready(function(){
 
 		function nameToPubID(name, length){
@@ -52,8 +55,8 @@
 			}
 		}
 
-		function uniqueIDGen(){
-			var current = 0;
+		function uniqueIDGen(start){
+			var current = typeof start === 'undefined' ? 0 : start;
 			return function(){
 				return current++;
 			}
@@ -132,45 +135,45 @@
 									y
 
 			This object would then be sent with instructions on how to parse it. Data transfer SHOULD be smaller.
-
 */
+
+		
+
 		$.getJSON( "https://api.guildwars2.com/v1/map_floor.json?continent_id=1&floor=0", function( data ) {
 
 			// create unique ID generators
-			var GenPubID = uniquePubIDGen(25);
-			var GenRegionID = uniqueIDGen();
-			var GenZoneID = uniqueIDGen();
-			var GenItemID = uniqueIDGen();
+			//var GenPubID = uniquePubIDGen(25);
+			//var GenRegionID = uniqueIDGen();
+			//var GenZoneID = uniqueIDGen();
+			var min_landmark = Number.MAX_VALUE;
+			var max_landmark = -1;
+			var min_task = Number.MAX_VALUE;
+			var max_task = -1;
+
+			var GenSkillID = uniqueIDGen(); // start at offset to avoid collisions
 			var pubid;
 
 			// get the size of the map
 			dboMapInfo.size = {x: data.texture_dims[0], y: data.texture_dims[1]};
 
+			dataObject.size = {x: data.texture_dims[0], y: data.texture_dims[1]};
+			dataObject.regions = [];
+
 			// for each region in the dataset
 			for(var rkey in data.regions){
 				var region = data.regions[rkey];
 
-				// generate a public and region id
-				pubid = GenPubID(region.name);
-				var regionid = GenRegionID(); 
-
-				// store the data on the region id key
-				dboMapRegion[regionid] = {
-					pubid: pubid,
-					regionid: regionid,
-					name: region.name, 
+				// store the data in the output object
+				dataObject.regions.push({
+					name: region.name,
 					label: {
-						x: region.label_coord[0], 
-						y: region.label_coord[1]
+						x: region.label_coord[0],
+						y: region.label_coord[1],
 					},
-					zones: new Array()
-				};
+					zones: new Array(),
+				});
 
-				// store the data on the public id
-				dboPublicRegistry[pubid] = {
-					type: 'region',
-					localid: regionid
-				}
+				var regionIndex = dataObject.regions.length-1;
 
 				// for each zone in the region
 				for(var mkey in region.maps){
@@ -180,19 +183,13 @@
 						continue; // ignore unwanted maps
 					}
 
-					// generate a public and zone id
-					pubid = GenPubID(map.name);
-					var zoneid = GenZoneID();
-
-					// store data on the zone id key
-					dboMapZone[zoneid] = {
-						pubid: pubid,
-						zoneid: zoneid,
-						regionid: regionid,
-						name: map.name, 
+					// store data  in the output object
+					dataObject.regions[regionIndex].zones.push({
+						id: parseInt(mkey, 10),
+						name: map.name,
 						level: {
 							min: map.min_level,
-							max: map.max_level
+							max: map.max_level,
 						},
 						area: {
 							top: map.continent_rect[0][1],
@@ -200,127 +197,73 @@
 							bottom: map.continent_rect[1][1],
 							right: map.continent_rect[1][0]
 						},
-						items: new Array()
-					};
+						items: new Array(),
+					})
 
-					// store data on the public id
-					dboPublicRegistry[pubid] = {
-						type: 'zone',
-						localid: zoneid
-					}
-
-					// store reference on the region
-					dboMapRegion[regionid].zones.push(zoneid);
+					var zoneIndex = dataObject.regions[regionIndex].zones.length-1;
 
 					// for each item(poi) in the zone
 					for(var key in map.points_of_interest){
 						var poi = map.points_of_interest[key];
 
-						if(poi.type == "vista"){
-							pubid = GenPubID("vista "+map.name);
-							poi.name = "Discovered Vista";
-						}else{
-							pubid = GenPubID(poi.name);
-						}
+						// store reference in the out object
 
-						var itemid = GenItemID();
+						min_landmark = min_landmark < poi.poi_id ? min_landmark : poi.poi_id;
+						max_landmark = max_landmark > poi.poi_id ? max_landmark : poi.poi_id;
 
-						// store in map item table
-						dboMapItem[itemid] = {
-							pubid: pubid,
-							itemid: itemid,
-							zoneid: zoneid,
+						dataObject.regions[regionIndex].zones[zoneIndex].items.push({
+							id: poi.poi_id,
 							type: poi.type,
 							name: poi.name,
+							level: 0,
 							pos: {
 								x: poi.coord[0],
 								y: poi.coord[1],
 							},
-							level: 0
-						}
-
-						// store in public id table
-						dboPublicRegistry[pubid] = {
-							type: 'item',
-							localid: itemid
-						}
-
-						// store reference on the zone
-						dboMapZone[zoneid].items.push(itemid);
+						});
 					}
 
 					// for each item(task) in the zone
 					for(var key in map.tasks){
 						var task = map.tasks[key];
 
-						pubid = GenPubID(task.objective);
-						var itemid = GenItemID();
+						min_task = min_task < 0x2000 + task.task_id ? min_task : 0x2000 + task.task_id;
+						max_task = max_task > 0x2000 + task.task_id ? max_task : 0x2000 + task.task_id;
 
-						// store in map item table
-						dboMapItem[itemid] = {
-							pubid: pubid,
-							itemid: itemid,
-							zoneid: zoneid,
+						dataObject.regions[regionIndex].zones[zoneIndex].items.push({
+							id: 0x2000 + task.task_id,
 							type: 'task',
 							name: task.objective,
+							level: task.level,
 							pos: {
 								x: task.coord[0],
 								y: task.coord[1],
 							},
-							level: task.level
-						}
 
-						// store in public id table
-						dboPublicRegistry[pubid] = {
-							type: 'item',
-							localid: itemid
-						}
-
-						// store reference on the zone
-						dboMapZone[zoneid].items.push(itemid);
+						});
 					}
 
 					for(var key in map.skill_challenges){
 						var skill = map.skill_challenges[key];
 
-						pubid = GenPubID("Skill " + map.name);
-						var itemid = GenItemID();
-
-						// store in map item table
-						dboMapItem[itemid] = {
-							pubid: pubid,
-							itemid: itemid,
-							zoneid: zoneid,
+						dataObject.regions[regionIndex].zones[zoneIndex].items.push({
+							id: 0x4000 + GenSkillID(),
 							type: 'skill',
-							name: "Skill Challenge",
+							name: '',
+							level: 0,
 							pos: {
 								x: skill.coord[0],
 								y: skill.coord[1],
 							},
-							level: 0
-						}
-
-						// store in public id table
-						dboPublicRegistry[pubid] = {
-							type: 'item',
-							localid: itemid
-						}
-
-						// store reference on the zone
-						dboMapZone[zoneid].items.push(itemid);
+						});
 					}
 				}
 			}
-			pubOut = "var dboPublicRegistry = " + JSON.stringify(dboPublicRegistry, null, '\t') + ';';
-			itemOut = "var dboMapItem = " + JSON.stringify(dboMapItem, null, '\t') + ';';
-			zoneOut = "var dboMapZone = " + JSON.stringify(dboMapZone, null, '\t') + ';';
-			regionOut = "var dboMapRegion = " + JSON.stringify(dboMapRegion, null, '\t') + ';';
-			infoOut = "var dboMapInfo = " + JSON.stringify(dboMapInfo, null, '\t') + ';';
-			$('#content').append(codeToViewable(pubOut));
-			$('#content').append(codeToViewable(itemOut));
-			$('#content').append(codeToViewable(zoneOut));
-			$('#content').append(codeToViewable(regionOut));
-			$('#content').append(codeToViewable(infoOut));
+			console.log("min_landmark: " + min_landmark + "  max_landmark: " + max_landmark);
+			console.log("min_task: "+ min_task + "  max_task: " + max_task);
+
+			dataOut = JSON.stringify(dataObject, null, '\t');
+			$('#content').append(codeToViewable(dataOut));
 		});
 	});
 
@@ -329,6 +272,7 @@
 	function toggle(){
 		$('#content').empty();
 		if(compact){
+			/*
 			$('#content').append(codeToViewable(pubOut));
 			$('#content').append(codeToViewable(itemOut));
 			$('#content').append(codeToViewable(zoneOut));
@@ -340,6 +284,10 @@
 			$('#content').append(codeToCompact(zoneOut));
 			$('#content').append(codeToCompact(regionOut));
 			$('#content').append(codeToCompact(infoOut));
+		}*/
+			$('#content').append(codeToViewable(dataOut));
+		}else{
+			$('#content').append(codeToCompact(dataOut));
 		}
 		compact = !compact;
 	}
