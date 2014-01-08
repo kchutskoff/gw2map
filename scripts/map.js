@@ -92,16 +92,25 @@ if(typeof URLquery.target != 'undefined'){
 				var itemData = dboMapItem[entry.localid];
 				startMapX = itemData.pos.x;
 				startMapY = itemData.pos.y;
+				if(typeof URLquery.zoom == 'undefined'){
+					startMapZoom = maxZoom;
+				}
 				break;
 			}else if(entry.type == "zone"){
 				var zoneData = dboMapZone[entry.localid];
 				startMapX = (zoneData.area.right + zoneData.area.left) / 2;
 				startMapY = (zoneData.area.bottom + zoneData.area.top) / 2;
+				if(typeof URLquery.zoom == 'undefined'){
+					startMapZoom = maxZoom;
+				}
 				break;
 			}else if(entry.type == "region"){
 				var regionData = dboMapRegion[entry.localid];
 				startMapX = regionData.label.x;
 				startMapY = regionData.label.y;
+				if(typeof URLquery.zoom == 'undefined'){
+					startMapZoom = maxZoom;
+				}
 				break;
 			}
 		}else
@@ -341,26 +350,33 @@ $(document).ready(function(){
 
 	function makeOverFunc(target){
 		return function(e){
-			$('#hover_window').html(target.name);
+			// waypoint icon
+			if(target.mapItem.type == "waypoint"){
+				target.setIcon(iconTypes['waypointHover']);
+			}
+			// task special name
+			if(target.mapItem.type == "task"){
+				$('#hover_window').html(target.mapItem.name + String.fromCharCode(160,160) + "<font style='color:#BBB;font-size:0.9em;'>(" + target.mapItem.level + ")</font>");
+			}else{
+				$('#hover_window').html(target.mapItem.name);
+			}
+			// show pop-up text
 			$('#hover_window').stop().fadeIn({
 				duration:200,
 				queue: false,
 			});
-			if(target.type == "waypoint"){
-				target.setIcon(iconTypes['waypointHover']);
-			}
-
+			// get future position and current size of textbox
 			var proj = pixelOverlay.getProjection();
 			var pixel = proj.fromLatLngToContainerPixel(target.getPosition());
 			var docWidth = $(window).width();
 			var floatWidth = $('#hover_window').width();			
-
+			// if textbox is going to overflow, flip it to go the other direction
 			if(Math.round(pixel.x) + floatWidth + 20 >= docWidth){
 				$('#hover_window').css({
 					top: (Math.round(pixel.y) - 45) + "px",
 					left: (Math.round(pixel.x) - (floatWidth + 10) ) + "px",
 				});
-			}else{
+			}else{ // otherwise go normal direction
 				$('#hover_window').css({
 					top: (Math.round(pixel.y) - 45) + "px",
 					left: (Math.round(pixel.x) + 0) + "px",
@@ -374,7 +390,7 @@ $(document).ready(function(){
 
 	function makeOutFunc(target){
 		return function(e){ 
-			if(target.type == "waypoint"){
+			if(target.mapItem.type == "waypoint"){
 				target.setIcon(iconTypes['waypoint']);
 			}
 			$('#hover_window').stop().fadeOut({
@@ -386,12 +402,12 @@ $(document).ready(function(){
 
 	function makeClickFunc(target){
 		return function(e){
-			$('#modal_dialog_title').text(target.name);
+			$('#modal_dialog_title').text(target.mapItem.name);
 
 			var output = "<p>Direct Link: " +  target.mapItem.pubid + "</p>";
 
-			if(target.type == "waypoint" || target.type == "landmark"){
-				output += "<p>Chat Code: " + toChatCode(target.mapItem.itemid).replace('&', '&amp;') + "</p>"; // todo need to use actual in-game ID.
+			if(target.mapItem.type == "waypoint" || target.mapItem.type == "landmark"){
+				output += "<p>Chat Code: " + toChatCode(target.mapItem.itemid).replace('&', '&amp;') + "</p>";
 			}
 
 			$('#modal_dialog_content').html(output);
@@ -455,11 +471,7 @@ $(document).ready(function(){
 			tempMarker = new google.maps.Marker({
 				position: toLatLng(item.pos.x, item.pos.y),
 				draggable: false,
-				//map: gmap,
 				icon: iconTypes[item.type],
-				//visible: true,
-				name: itemName,
-				type: item.type,
 				mapItem: item,
 				zIndex: 100,
 			});

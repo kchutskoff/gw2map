@@ -138,9 +138,7 @@
 
 			// create unique ID generators
 			var GenPubID = uniquePubIDGen(25);
-			var GenRegionID = uniqueIDGen();
-			var GenZoneID = uniqueIDGen();
-			var GenItemID = uniqueIDGen();
+			var GenSkillID = uniqueIDGen();
 			var pubid;
 
 			// get the size of the map
@@ -152,13 +150,12 @@
 
 				// generate a public and region id
 				pubid = GenPubID(region.name);
-				var regionid = GenRegionID(); 
 
 				// store the data on the region id key
-				dboMapRegion[regionid] = {
+				dboMapRegion[rkey] = {
 					pubid: pubid,
-					regionid: regionid,
-					name: region.name, 
+					regionid: rkey,
+					name: region.name,
 					label: {
 						x: region.label_coord[0], 
 						y: region.label_coord[1]
@@ -169,7 +166,7 @@
 				// store the data on the public id
 				dboPublicRegistry[pubid] = {
 					type: 'region',
-					localid: regionid
+					localid: rkey
 				}
 
 				// for each zone in the region
@@ -182,13 +179,12 @@
 
 					// generate a public and zone id
 					pubid = GenPubID(map.name);
-					var zoneid = GenZoneID();
 
 					// store data on the zone id key
-					dboMapZone[zoneid] = {
+					dboMapZone[mkey] = {
 						pubid: pubid,
-						zoneid: zoneid,
-						regionid: regionid,
+						zoneid: mkey,
+						regionid: rkey,
 						name: map.name, 
 						level: {
 							min: map.min_level,
@@ -206,11 +202,11 @@
 					// store data on the public id
 					dboPublicRegistry[pubid] = {
 						type: 'zone',
-						localid: zoneid
+						localid: mkey
 					}
 
 					// store reference on the region
-					dboMapRegion[regionid].zones.push(zoneid);
+					dboMapRegion[rkey].zones.push(mkey);
 
 					// for each item(poi) in the zone
 					for(var key in map.points_of_interest){
@@ -223,13 +219,11 @@
 							pubid = GenPubID(poi.name);
 						}
 
-						var itemid = GenItemID();
-
 						// store in map item table
-						dboMapItem[itemid] = {
+						dboMapItem[poi.poi_id] = {
 							pubid: pubid,
-							itemid: itemid,
-							zoneid: zoneid,
+							itemid: poi.poi_id,
+							zoneid: mkey,
 							type: poi.type,
 							name: poi.name,
 							pos: {
@@ -242,11 +236,11 @@
 						// store in public id table
 						dboPublicRegistry[pubid] = {
 							type: 'item',
-							localid: itemid
+							localid: poi.poi_id
 						}
 
 						// store reference on the zone
-						dboMapZone[zoneid].items.push(itemid);
+						dboMapZone[mkey].items.push(poi.poi_id);
 					}
 
 					// for each item(task) in the zone
@@ -254,13 +248,13 @@
 						var task = map.tasks[key];
 
 						pubid = GenPubID(task.objective);
-						var itemid = GenItemID();
+						var taskid = 0x2000 + task.task_id;
 
 						// store in map item table
-						dboMapItem[itemid] = {
+						dboMapItem[taskid] = {
 							pubid: pubid,
-							itemid: itemid,
-							zoneid: zoneid,
+							itemid: taskid,
+							zoneid: mkey,
 							type: 'task',
 							name: task.objective,
 							pos: {
@@ -273,24 +267,24 @@
 						// store in public id table
 						dboPublicRegistry[pubid] = {
 							type: 'item',
-							localid: itemid
+							localid: taskid
 						}
 
 						// store reference on the zone
-						dboMapZone[zoneid].items.push(itemid);
+						dboMapZone[mkey].items.push(taskid);
 					}
 
 					for(var key in map.skill_challenges){
 						var skill = map.skill_challenges[key];
 
 						pubid = GenPubID("Skill " + map.name);
-						var itemid = GenItemID();
+						var skillid = 0x4000 + GenSkillID();
 
 						// store in map item table
-						dboMapItem[itemid] = {
+						dboMapItem[skillid] = {
 							pubid: pubid,
-							itemid: itemid,
-							zoneid: zoneid,
+							itemid: skillid,
+							zoneid: mkey,
 							type: 'skill',
 							name: "Skill Challenge",
 							pos: {
@@ -303,11 +297,11 @@
 						// store in public id table
 						dboPublicRegistry[pubid] = {
 							type: 'item',
-							localid: itemid
+							localid: skillid
 						}
 
 						// store reference on the zone
-						dboMapZone[zoneid].items.push(itemid);
+						dboMapZone[mkey].items.push(skillid);
 					}
 				}
 			}
