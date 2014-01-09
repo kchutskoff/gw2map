@@ -22,7 +22,7 @@ var URLquery = function(){
 
 function toChatCode(id){
 	// convert id to 2 bytes, reverse bytes, add 0x04 to the front and 0x00 0x00 to the back, encode to base 64, surround in [& and ];
-	return '[&'+Base64.encode(String.fromCharCode(0x04, id % 256, Math.floor(id/256), 0x00, 0x00))+']';
+	return '[&'+btoa(String.fromCharCode(0x04, id % 256, Math.floor(id/256), 0x00, 0x00))+']';
 }
 
 function distanceFromSegment(p, a, b){
@@ -408,6 +408,8 @@ $(document).ready(function(){
 
 			if(target.mapItem.type == "waypoint" || target.mapItem.type == "landmark"){
 				output += "<p>Chat Code: " + toChatCode(target.mapItem.itemid).replace('&', '&amp;') + "</p>";
+
+				output += "<p>ID Code: " + target.mapItem.itemid;
 			}
 
 			$('#modal_dialog_content').html(output);
