@@ -3,6 +3,15 @@
 // handles all map-related stuff
 // all dbo objects are loaded at this point
 
+	$('#dialog_button_ok').click(function(){
+		$('#dialog_window').fadeOut();
+	});
+
+	$('#dialog_window').draggable({
+		cancel: '#dialog_main_window',
+		handle: '#dialog_title_bar',
+		containment: 'body'
+	});
 
 // get URL query parameters
 var URLquery = function(){
@@ -402,7 +411,7 @@ $(document).ready(function(){
 
 	function makeClickFunc(target){
 		return function(e){
-			$('#modal_dialog_title').text(target.mapItem.name);
+			$('#dialog_title').text(target.mapItem.name);
 
 			var output = "<p>Direct Link: " +  target.mapItem.pubid + "</p>";
 
@@ -412,9 +421,17 @@ $(document).ready(function(){
 				output += "<p>ID Code: " + target.mapItem.itemid;
 			}
 
-			$('#modal_dialog_content').html(output);
+			$('#dialog_content').html(output);
 
-			$('#modal_dialog').fadeIn();
+			if(!$('#dialog_window').is(':visible'))
+			{
+				$('#dialog_window').fadeIn();
+
+				$('#dialog_window').css({
+					'left': (($(window).width() - $('#dialog_window').width())/2) + 'px', 
+					'top': (($(window).height() - $('#dialog_window').height())/2) + 'px'
+				});
+			}
 		}
 	}
 

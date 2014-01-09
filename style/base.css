@@ -130,16 +130,16 @@ html, body, #gw2map{
 }
 
 #dialog_window{
-	position: absolute;
+	position: fixed;
 	width: 300px;
 	height: auto;
-	left: 50%;
-	top: 50%;
-	margin: -120px 0 0 -150px;
-
+	display: none;
+	
 	color: white;
 	font-family: 'Menomonia';
 	z-index: 9999;
+	top: 0px;
+	left: 0px;
 }
 
 #dialog_title_bar{
@@ -175,6 +175,19 @@ html, body, #gw2map{
 #dialog_buttons{
 	text-align: center;
 	padding: 6px;
+}
+
+#dialog_button_ok{
+	width: 90px;
+	height: 16px;
+	background-color: #FC7;
+	border: 1px solid black;
+	border-radius: 4px;
+	color: black;
+	margin: auto;
+	cursor: pointer;
+	padding: 2px;
+	font-weight: bold;
 }
 
 canvas{
