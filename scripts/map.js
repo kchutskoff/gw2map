@@ -413,7 +413,7 @@ $(document).ready(function(){
 		return function(e){
 			$('#dialog_title').text(target.mapItem.name);
 
-			var output = "<p>Direct Link: " +  target.mapItem.pubid + "</p>";
+			var output = "<p>Direct Link: ?target=" +  target.mapItem.pubid + "</p>";
 
 			if(target.mapItem.type == "waypoint" || target.mapItem.type == "landmark"){
 				output += "<p>Chat Code: " + toChatCode(target.mapItem.itemid).replace('&', '&amp;') + "</p>";
@@ -569,6 +569,10 @@ $(document).ready(function(){
 			// get paths in the zone
 			if(currentZone.zoneid in dboMapPaths && dboMapPaths[currentZone.zoneid].length != 0){
 				var currentPaths = dboMapPaths[currentZone.zoneid];
+				$('#map_controls_title').text(currentZone.name);
+				$('#map_controls_subtitle').text("Exploration routes").show();
+				$('#map_controls_error').hide();
+
 				$('#map_controls_content').empty();
 				for(var key in currentPaths){
 					var path = currentPaths[key];
@@ -577,14 +581,18 @@ $(document).ready(function(){
 				}
 			}else{
 				// no paths for zone
-				$('#map_controls_error').text("This zone does not have any routes.")
-				$('#map_controls_error').show();
+				$('#map_controls_subtitle').hide();
+				$('#map_controls_error').text("This zone does not have any routes.").show();
 			}
 		}else{
+
+			$('#map_controls_title').text("");
 			$('#map_controls_error').hide();
 			$('#map_controls_content').empty();
 		}
 	}
+
+	$('#map_title').hide();
 
 	function updateCurrentZone(){
 		var center = ll2p(gmap.getCenter());
@@ -605,8 +613,8 @@ $(document).ready(function(){
 					zone.area.right > center.x)
 				{
 					currentZone = zone;
-					$('#map_title').show()
-					$('#map_title_content').text(zone.name);
+					//$('#map_title').show()
+					//$('#map_title_content').text(zone.name);
 
 					updateControls();
 					return;
@@ -614,7 +622,7 @@ $(document).ready(function(){
 			}
 			currentZone = null;
 			updateControls();
-			$('#map_title').hide();
+			//$('#map_title').hide();
 		}	
 	};
 
