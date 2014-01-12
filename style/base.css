@@ -14,6 +14,27 @@ html, body, #gw2map{
 	padding: 0;
 	height: 100%;
 	font-size: 15px;
+	background-color: black;
+}
+
+#gw2map{
+	z-index: 1;
+}
+
+#map_loading{
+	position: absolute;
+    top: 50%;
+    left: 50%;
+    margin-top: -50px;
+    margin-left: -100px;
+    width: 200px;
+    height: 100px;
+    z-index: 0;
+
+    font-family: 'Menomonia';
+    font-size: 1.5em;
+    color: #FC7;
+    text-align: center;
 }
 
 #hover_window{
@@ -105,6 +126,7 @@ html, body, #gw2map{
 	user-select: none;
 
 	cursor: default;
+	display: none;
 }
 #map_controls_title{
 	color: #FC7;
@@ -146,23 +168,44 @@ html, body, #gw2map{
 	z-index: 9999;
 	top: 0px;
 	left: 0px;
+
+    border-bottom-left-radius: 5px;
+    border-bottom-right-radius: 5px;
+    border-width: 2px;
+    border-style: solid;
+    border-color: rgb(0,0,0);
+    border-color: rgba(0,0,0,0.8);
 }
 
 #dialog_title_bar{
-	background-color: rgb(80,39,46);
-    background-color: rgba(80,39,46,0.8);
-    border: 1px black solid;
+	background-color: rgb(79,41,37);
+    background-color: rgba(79,41,37,0.9);
     width: 100%;
     height: auto;
     overflow: hidden;
+    border-width: 2px;
+    border-bottom-style: solid;
+    border-color: rgb(0,0,0);
+    border-color: rgba(0,0,0,0.8);
     cursor: move;
+    cursor: -webkit-grab;
+    cursor: -moz-grab;
+}
+
+#dialog_title_bar:hover{
+	background-color: rgb(114,59,53);
+    background-color: rgba(114,59,53,0.9);
+}
+
+#dialog_title_bar:active{
+	cursor: move;
+    cursor: -webkit-grabbing;
+    cursor: -moz-grabbing;
 }
 
 #dialog_main_window{
-	background-color: rgb(26,39,120);
-    background-color: rgba(26,39,120,0.8);
-    border: 1px black solid;
-    border-top-style: none;
+	background-color: rgb(26,39,46);
+    background-color: rgba(26,39,46,0.9);
     width: 100%;
     height: auto;
 }
@@ -171,7 +214,7 @@ html, body, #gw2map{
 	color: #FC7;
 	font-size: 1.3em;
 	text-align: center;
-	padding: 3px;
+	padding: 3px 8px;
 }
 
 #dialog_content{
@@ -187,14 +230,22 @@ html, body, #gw2map{
 #dialog_button_ok{
 	width: 90px;
 	height: 16px;
-	background-color: #FC7;
+	background-color: #cbc5b5;
 	border: 1px solid black;
-	border-radius: 4px;
+	border-radius: 2px;
 	color: black;
 	margin: auto;
 	cursor: pointer;
 	padding: 2px;
 	font-weight: bold;
+}
+
+#dialog_button_ok:hover{
+	background-color: #eae7de;
+}
+
+#gw2map{
+	display: none;
 }
 
 canvas{

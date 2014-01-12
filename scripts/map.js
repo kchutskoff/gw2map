@@ -3,29 +3,8 @@
 // handles all map-related stuff
 // all dbo objects are loaded at this point
 
-	$('#dialog_button_ok').click(function(){
-		$('#dialog_window').fadeOut();
-	});
 
-	$('#dialog_window').draggable({
-		cancel: '#dialog_main_window',
-		handle: '#dialog_title_bar',
-		containment: 'body'
-	});
 
-// get URL query parameters
-var URLquery = function(){
-	var out = {};
-	var q = window.location.search.substring(1).split('&');
-	for (var i = 0; i < q.length; i++) {
-		var pair = q[i].split('=');
-		if(typeof out[pair[0]] === 'undefined'){
-			out[pair[0]] = new Array();
-		}
-		out[pair[0]].push(pair[1]);
-	};
-	return out;
-}();
 
 // HELPER FUNCTIONS
 
@@ -179,6 +158,7 @@ $(document).ready(function(){
 
 // Map Declaration
 	var gmap = new google.maps.Map(document.getElementById("gw2map") , {
+		disableDoubleClickZoom: true,
 		zoom: startMapZoom,
 		minZoom: minZoom,
 		maxZoom: maxZoom,
@@ -686,5 +666,17 @@ $(document).ready(function(){
 			},
 		],
 	});   	
+
+	google.maps.event.addListener(gmap, 'dblclick', function(e){
+		var point = ll2p(e.latLng);
+		console.log(point.x + ", " + point.y);
+	});
+
+	google.maps.event.addListener(gmap, 'rightclick', function(e){
+		var point = ll2p(e.latLng);
+		console.log(point.x + ", " + point.y);
+	});
+
+	ShowUI();
 
 });
