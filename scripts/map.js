@@ -1,3 +1,4 @@
+"use strict";
 
 // Map Logic
 // handles all map-related stuff
@@ -87,6 +88,7 @@ function Gw2Map() {
 	var dboMapRegion = {};
 	var dboMapItem = {};
 	var dboPublicRegistry = {};
+	var dboPoints = {};
 
 	// locals
 	var minZoom = 5;
@@ -560,14 +562,14 @@ function Gw2Map() {
 		for (key in dboPoints) {
 			var line = dboPoints[key];
 			var verts = [];
-			for (vertkey in line.vertices) {
+			for (var vertkey in line.vertices) {
 				var vert = line.vertices[vertkey];
 				verts.push({
 								pos: p2ll(new google.maps.Point(vert.x, vert.y)),
 								type: vert.type,
 							});
 			}
-			myPath = new MapPath(gmap, {
+			var myPath = new MapPath(gmap, {
 				types: [pathStyleNormal, pathStyleUnderground],
 				vertices: verts
 			});

@@ -1,3 +1,5 @@
+"use strict";
+
 // get URL query parameters
 function loadQuery(){
 	var out = {};

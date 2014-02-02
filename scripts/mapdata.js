@@ -1,3 +1,5 @@
+"use strict";
+
 function MapData(settings){
 	var onReady = (typeof settings === 'object' && typeof settings.onReady === 'function' ? settings.onReady : null);
 	var toLoad = (typeof settings === 'object' && typeof settings.toLoad === 'object' ? settings.toLoad : null);

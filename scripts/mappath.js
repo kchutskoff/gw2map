@@ -1,3 +1,5 @@
+"use strict";
+
 function MapPath(map, data) {
 
 	var paths = new Array();

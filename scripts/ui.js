@@ -1,3 +1,5 @@
+"use strict";
+
 $(document).ready(function(){
 	$('#dialog_button_ok').click(function(){
 		$('#dialog_window').fadeOut();
