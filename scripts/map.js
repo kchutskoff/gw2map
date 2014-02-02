@@ -58,8 +58,10 @@ function fromPointToLatLng(point, max_zoom){
 
 // on page load
 $(document).ready(function(){
+	var m = new Gw2Map();
+	m.create();
 	var d = new MapData({
-		toLoad: 
+		toLoad:
 		[
 			{ name: "dboMapItem", url: "data/dboMapItem.json" },
 			{ name: "dboMapRegion", url: "data/dboMapRegion.json" },
@@ -68,94 +70,36 @@ $(document).ready(function(){
 			{ name: "dboMapInfo", url: "data/dboMapInfo.json" },
 		],
 		onReady: function(){
-			var m = new Gw2Map(d);
-			m.create();
+			m.dataLoaded(d);
 		}
-	});		
+	});
 });
 
 // TODO: make this a proper class.
 
-function Gw2Map(data) {
+function Gw2Map() {
 	// data locals
-	var dboMapInfo = data.get('dboMapInfo');
-	var dboMapZone = data.get('dboMapZone');
-	var dboMapRegion = data.get('dboMapRegion');
-	var dboMapItem = data.get('dboMapItem');
-	var dboPublicRegistry = data.get('dboPublicRegistry');
+	var dboMapInfo = {};
+	var dboMapZone = {};
+	var dboMapRegion = {};
+	var dboMapItem = {};
+	var dboPublicRegistry = {};
 
 	// locals
 	var minZoom = 5;
 	var maxZoom = 11;
-	
+
 	var markerZoom = 9;
 	var waypointZoom = 8;
 
-	var mapSize = Math.max(dboMapInfo.size.x, dboMapInfo.size.y);
+	var mapSize = 0;
 
-	var startMapPos = {x: mapSize/2, y: mapSize/2};
+	//var startMapPos = {x: mapSize/2, y: mapSize/2};
 	var startMapZoom = 8;
 
 	var markersStartVisible = startMapZoom > markerZoom;
 
-	// process target
-	if(typeof URLquery.target != 'undefined'){
-		for(var i = 0; i < URLquery.target.length; ++i)
-		{
-			// try each target in order
-			// is it an pubid target?
-			if(URLquery.target[i] in dboPublicRegistry)
-			{
-				var entry = dboPublicRegistry[URLquery.target[i]];
-				if(entry.type == "item"){
-					var itemData = dboMapItem[entry.localid];
-					startMapPos = itemData.pos;
-					if(typeof URLquery.zoom == 'undefined'){
-						startMapZoom = maxZoom;
-					}
-					break;
-				}else if(entry.type == "zone"){
-					var zoneData = dboMapZone[entry.localid];
-					startMapPos = {x: (zoneData.area.right + zoneData.area.left) / 2, y: (zoneData.area.bottom + zoneData.area.top) / 2};
-					if(typeof URLquery.zoom == 'undefined'){
-						startMapZoom = maxZoom;
-					}
-					break;
-				}else if(entry.type == "region"){
-					var regionData = dboMapRegion[entry.localid];
-					startMapPos = regionData.label;
-					if(typeof URLquery.zoom == 'undefined'){
-						startMapZoom = maxZoom;
-					}
-					break;
-				}
-			}else
-			{
-				// position data, check if formatted as "number,number"
-				var match = URLquery.target[i].match(/(\d.*)\,(\d.*)/);
 
-				if(match){
-					var tempX = parseInt(match[1], 10);
-					var tempY = parseInt(match[2], 10);
-					if(tempX && tempY){
-						startMapPos = {x: tempX, y: tempY};
-					}
-				}
-			}
-		}
-	}
-
-	// process zoom
-	if(typeof URLquery.zoom != 'undefined'){
-		for(var i = 0; i < URLquery.zoom.length; ++i){
-			var tempZoom = parseInt(URLquery.zoom[i]);
-			if(tempZoom && tempZoom >= minZoom && tempZoom <= maxZoom){
-				startMapZoom = tempZoom;
-				markersStartVisible = startMapZoom > markerZoom;
-				break;
-			}
-		}
-	}
 
 
 	var max_zoom = function(){
@@ -220,7 +164,6 @@ function Gw2Map(data) {
 			zoom: startMapZoom,
 			minZoom: minZoom,
 			maxZoom: maxZoom,
-			center: toLatLng(startMapPos.x, startMapPos.y),
 			streetViewControl: false,
 			mapTypeControl: false,
 			zoomControlOptions: {
@@ -311,10 +254,9 @@ function Gw2Map(data) {
 		});
 
 		google.maps.event.addListenerOnce(gmap, 'idle', function(){
-			ShowUI();
 			// need to resize to have the whole map show
-			google.maps.event.trigger(gmap, 'resize');
-			gmap.setCenter(toLatLng(startMapPos.x, startMapPos.y));
+			readyToStart();
+
 		});
 
 		google.maps.event.addListener(gmap, 'rightclick', function(e){
@@ -322,7 +264,6 @@ function Gw2Map(data) {
 			console.log(point.x + ", " + point.y);
 		});
 
-		processData();
 		updateControls();
 	}
 
@@ -405,7 +346,98 @@ function Gw2Map(data) {
 		}
 	}
 
-	function processData(){
+	var startCount = 0;
+	function readyToStart() {
+		++startCount;
+		if (startCount == 2) {
+			ShowUI();
+			google.maps.event.trigger(gmap, 'resize');
+			gmap.setCenter(toLatLng(mapSize/2,mapSize/2));
+			processTarget();
+		}
+	}
+
+	this.dataLoaded = function(data) {
+		dboMapInfo = data.get('dboMapInfo');
+		dboMapZone = data.get('dboMapZone');
+		dboMapRegion = data.get('dboMapRegion');
+		dboMapItem = data.get('dboMapItem');
+		dboPublicRegistry = data.get('dboPublicRegistry');
+		processData();
+
+		readyToStart();
+	}
+
+	function processTarget() {
+		var pos = {};
+		var zoom;
+		// process target
+		if(typeof URLquery.target != 'undefined'){
+			for(var i = 0; i < URLquery.target.length; ++i)
+			{
+				// try each target in order
+				// is it an pubid target?
+				if(URLquery.target[i] in dboPublicRegistry)
+				{
+					var entry = dboPublicRegistry[URLquery.target[i]];
+					if(entry.type == "item"){
+						var itemData = dboMapItem[entry.localid];
+						pos = itemData.pos;
+						if(typeof URLquery.zoom == 'undefined'){
+							zoom = maxZoom;
+						}
+						break;
+					}else if(entry.type == "zone"){
+						var zoneData = dboMapZone[entry.localid];
+						pos = {x: (zoneData.area.right + zoneData.area.left) / 2, y: (zoneData.area.bottom + zoneData.area.top) / 2};
+						if(typeof URLquery.zoom == 'undefined'){
+							zoom = maxZoom;
+						}
+						break;
+					}else if(entry.type == "region"){
+						var regionData = dboMapRegion[entry.localid];
+						pos = regionData.label;
+						if(typeof URLquery.zoom == 'undefined'){
+							zoom = maxZoom;
+						}
+						break;
+					}
+				}else
+				{
+					// position data, check if formatted as "number,number"
+					var match = URLquery.target[i].match(/(\d.*)\,(\d.*)/);
+
+					if(match){
+						var tempX = parseInt(match[1], 10);
+						var tempY = parseInt(match[2], 10);
+						if(tempX && tempY){
+							pos = {x: tempX, y: tempY};
+						}
+					}
+				}
+			}
+			gmap.setCenter(toLatLng(pos.x,pos.y));
+			gmap.setZoom(zoom);
+		}
+
+		// process zoom
+		if(typeof URLquery.zoom != 'undefined'){
+			for(var i = 0; i < URLquery.zoom.length; ++i){
+				var tempZoom = parseInt(URLquery.zoom[i]);
+				if(tempZoom && tempZoom >= minZoom && tempZoom <= maxZoom){
+					zoom = tempZoom;
+					markersStartVisible = startMapZoom > markerZoom;
+					break;
+				}
+			}
+			gmap.setZoom(zoom);
+		}
+
+	}
+
+	function processData() {
+		mapSize = Math.max(dboMapInfo.size.x, dboMapInfo.size.y);
+
 		for(var key in dboMapRegion) {
 			var region = dboMapRegion[key];
 
