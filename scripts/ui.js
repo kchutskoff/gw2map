@@ -8,6 +8,10 @@ $(document).ready(function(){
 		handle: '#dialog_title_bar',
 		containment: 'body'
 	});
+
+	if(typeof URLquery.edit != 'undefined'){
+		$('#map_controls_edit').css('display', 'inline');
+	}
 /*
 	var hoverTitleColor = $('#dialog_title_bar').css("background-color");
 	var colorMatch = hoverTitleColor.match(/rgba\(([\d]+),\s?([\d]+),\s?([\d]+),\s?([\d\.]+)\)/);
@@ -43,4 +47,20 @@ $(document).ready(function(){
 function ShowUI(){
 	$('#gw2map').fadeIn();
 	$('#map_controls').fadeIn();
+}
+
+function AddItemToControl(name, enabled, onChange){
+	var routeID = "route__" + name.replace(/\s/, '_').toLowerCase();
+	$('#map_controls_content').append(
+		'<input id="'+routeID+'" type="checkbox" value="'+(enabled ? 'true' : 'false')+'"\/>' +
+		'<label for="'+routeID+'">'+name+'<\/label>'
+	);
+	if(typeof onChange == 'function')
+	{
+		console.log("registering event");
+		$('#'+routeID).click(onChange);
+	}else{
+		console.log("onChange type = " + typeof onChange);
+	}
+
 }

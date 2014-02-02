@@ -60,12 +60,10 @@ var minZoom = 5;
 var maxZoom = 11;
 var mapSize = Math.max(dboMapInfo.size.x, dboMapInfo.size.y);
 var markerZoom = 9;
-var startMapX = mapSize/2;
-var startMapY = mapSize/2;
+var waypointZoom = 8;
+var startMapPos = {x: mapSize/2, y: mapSize/2};
 var startMapZoom = 8;
 var markersStartVisible = startMapZoom > markerZoom;
-
-
 
 // process target
 if(typeof URLquery.target != 'undefined'){
@@ -78,24 +76,21 @@ if(typeof URLquery.target != 'undefined'){
 			var entry = dboPublicRegistry[URLquery.target[i]];
 			if(entry.type == "item"){
 				var itemData = dboMapItem[entry.localid];
-				startMapX = itemData.pos.x;
-				startMapY = itemData.pos.y;
+				startMapPos = itemData.pos;
 				if(typeof URLquery.zoom == 'undefined'){
 					startMapZoom = maxZoom;
 				}
 				break;
 			}else if(entry.type == "zone"){
 				var zoneData = dboMapZone[entry.localid];
-				startMapX = (zoneData.area.right + zoneData.area.left) / 2;
-				startMapY = (zoneData.area.bottom + zoneData.area.top) / 2;
+				startMapPos = {x: (zoneData.area.right + zoneData.area.left) / 2, y: (zoneData.area.bottom + zoneData.area.top) / 2};
 				if(typeof URLquery.zoom == 'undefined'){
 					startMapZoom = maxZoom;
 				}
 				break;
 			}else if(entry.type == "region"){
 				var regionData = dboMapRegion[entry.localid];
-				startMapX = regionData.label.x;
-				startMapY = regionData.label.y;
+				startMapPos = regionData.label;
 				if(typeof URLquery.zoom == 'undefined'){
 					startMapZoom = maxZoom;
 				}
@@ -110,8 +105,7 @@ if(typeof URLquery.target != 'undefined'){
 				var tempX = parseInt(match[1], 10);
 				var tempY = parseInt(match[2], 10);
 				if(tempX && tempY){
-					startMapX = tempX;
-					startMapY = tempY;
+					startMapPos = {x: tempX, y: tempY};
 				}	
 			}
 		}
@@ -130,12 +124,10 @@ if(typeof URLquery.zoom != 'undefined'){
 	}
 }
 
-if(typeof URLquery.edit != 'undefined'){
-	$('#map_controls_edit').show();
-}
-
 // on page load
 $(document).ready(function(){
+
+	var loadStart = new Date().getTime();
 
 	var max_zoom = function(){
 		return maxZoom;
@@ -162,7 +154,7 @@ $(document).ready(function(){
 		zoom: startMapZoom,
 		minZoom: minZoom,
 		maxZoom: maxZoom,
-		center: toLatLng(startMapX, startMapY),
+		center: toLatLng(startMapPos.x, startMapPos.y),
 		streetViewControl: false,
 		mapTypeControl: false,
 		zoomControlOptions: {
@@ -486,7 +478,12 @@ $(document).ready(function(){
 	var MarkerMan = new MarkerManager(gmap, {borderPadding: 0});
 	google.maps.event.addListener(MarkerMan, 'loaded', function(){
 		for(var key in mapMarkers){
-			MarkerMan.addMarkers(mapMarkers[key], markerZoom);
+			if(key == 'waypoint'){
+				MarkerMan.addMarkers(mapMarkers[key], waypointZoom);
+			}else{
+				MarkerMan.addMarkers(mapMarkers[key], markerZoom);
+			}
+			
 		}
 		MarkerMan.refresh();
 	});
@@ -557,7 +554,7 @@ $(document).ready(function(){
 				for(var key in currentPaths){
 					var path = currentPaths[key];
 
-					$('#map_controls_content').append("<div>"+path.name+"</div>");
+					AddItemToControl(path.name, false, function(){console.log("Hello World");});
 				}
 			}else{
 				// no paths for zone
@@ -566,31 +563,33 @@ $(document).ready(function(){
 			}
 		}else{
 
-			$('#map_controls_title').text("");
+			$('#map_controls_title').text("No Zone Selected");
+			$('#map_controls_subtitle').text("Double-click on a zone to get started")
 			$('#map_controls_error').hide();
 			$('#map_controls_content').empty();
 		}
 	}
 
+	updateControls();
+
 	$('#map_title').hide();
 
-	function updateCurrentZone(){
-		var center = ll2p(gmap.getCenter());
+	function updateCurrentZone(p){
 		if(currentZone == null || 
 			(
-				currentZone.area.top >= center.y ||
-				currentZone.area.bottom <= center.y ||
-				currentZone.area.left >= center.x ||
-				currentZone.area.right <= center.x
+				currentZone.area.top >= p.y ||
+				currentZone.area.bottom <= p.y ||
+				currentZone.area.left >= p.x ||
+				currentZone.area.right <= p.x
 			))
 		{
 			for(var key in dboMapZone){
 				var zone = dboMapZone[key];
 
-				if(zone.area.top < center.y &&
-					zone.area.bottom > center.y &&
-					zone.area.left < center.x &&
-					zone.area.right > center.x)
+				if(zone.area.top < p.y &&
+					zone.area.bottom > p.y &&
+					zone.area.left < p.x &&
+					zone.area.right > p.x)
 				{
 					currentZone = zone;
 					//$('#map_title').show()
@@ -600,15 +599,20 @@ $(document).ready(function(){
 					return;
 				}
 			}
-			currentZone = null;
-			updateControls();
+			//currentZone = null;
+			//updateControls();
 			//$('#map_title').hide();
 		}	
 	};
 
-	updateCurrentZone();
+	//updateCurrentZone(startMapPos);
 
-	google.maps.event.addListener(gmap, 'center_changed', updateCurrentZone)
+	google.maps.event.addListener(gmap, 'dblclick', function(e){
+		var p = ll2p(e.latLng);
+		updateCurrentZone(p);
+	});
+
+	//google.maps.event.addListener(gmap, 'center_changed', updateCurrentZone)
 
 	// testing path stuff
 
@@ -667,16 +671,20 @@ $(document).ready(function(){
 		],
 	});   	
 
-	google.maps.event.addListener(gmap, 'dblclick', function(e){
-		var point = ll2p(e.latLng);
-		console.log(point.x + ", " + point.y);
-	});
+	
+	//ShowUI();
 
 	google.maps.event.addListener(gmap, 'rightclick', function(e){
 		var point = ll2p(e.latLng);
 		console.log(point.x + ", " + point.y);
 	});
 
-	ShowUI();
+	// once the map loads, show everything
+	google.maps.event.addListenerOnce(gmap, 'idle', function(){
+		ShowUI();
+		// need to resize to have the whole map show
+		google.maps.event.trigger(gmap, 'resize');
+		gmap.setCenter(toLatLng(startMapPos.x, startMapPos.y));
+	});
 
 });

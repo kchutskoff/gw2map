@@ -25,16 +25,24 @@ html, body, #gw2map{
 	position: absolute;
     top: 50%;
     left: 50%;
-    margin-top: -50px;
-    margin-left: -100px;
-    width: 200px;
-    height: 100px;
+    margin-top: -100px;
+    margin-left: -150px;
+    width: 300px;
+    height: 200px;
     z-index: 0;
-
     font-family: 'Menomonia';
-    font-size: 1.5em;
-    color: #FC7;
     text-align: center;
+    vertical-align: center;
+}
+
+#map_loading_title{
+	font-size: 1.5em;
+    color: #FC7;
+}
+
+#map_loading_subtitle{
+	color: white;
+	font-size: 1.0em;
 }
 
 #hover_window{
@@ -103,7 +111,7 @@ html, body, #gw2map{
 	min-width: 150px;
 	background-color: rgb(26,39,46);
     background-color: rgba(26,39,46,0.8);
-	padding: 5px;
+	padding:  4px 10px;
 
 	border-color: rgb(0,0,0);
 	border-color: rgba(0,0,0,0.8);
@@ -143,11 +151,9 @@ html, body, #gw2map{
 }
 
 #map_controls_edit{
-	position: absolute;
-	top: 4px;
-	right: 4px;
 	display: none;
-
+	margin-left: 5px;
+	vertical-align: top;\
 	cursor: pointer;
 }
 
@@ -246,6 +252,10 @@ html, body, #gw2map{
 
 #gw2map{
 	display: none;
+}
+
+label{
+	padding-left: 5px;
 }
 
 canvas{
