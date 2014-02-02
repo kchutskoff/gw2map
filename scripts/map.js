@@ -329,7 +329,7 @@ function Gw2Map() {
 
 			var url = window.location.pathname + "?target=" + target.mapItem.pubid;
 
-			var output = "<p>Direct Link: <a href='"+url+"' onClick='return gw2map.clickTarget(event, \""+url+"\");'>" + url + "</a></p>";
+			var output = "<p>Direct Link: <a href='"+url+"' onClick='return gw2map.clickTarget(event, \""+url+"\");'>" + target.mapItem.pubid + "</a></p>";
 
 			if(target.mapItem.type == "waypoint" || target.mapItem.type == "landmark"){
 				output += "<p>Chat Code: " + toChatCode(target.mapItem.itemid).replace('&', '&amp;') + "</p>";
@@ -353,7 +353,7 @@ function Gw2Map() {
 
 	function gotoTarget(target) {
 		window.history.pushState({},"", target);
-		URLquery = loadQuerry();
+		URLquery = loadQuery();
 		processTarget();
 	}
 

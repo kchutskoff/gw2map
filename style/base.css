@@ -228,6 +228,18 @@ html, body, #gw2map{
 	padding: 8px;
 }
 
+#dialog_content a{
+	color: #FC7;
+}
+
+#dialog_content a:visited{
+	color: #CF9A42;
+}
+
+#dialog_content a:hover{
+	color: #F7DDB2;
+}
+
 #dialog_buttons{
 	text-align: center;
 	padding: 6px;

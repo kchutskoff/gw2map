@@ -8,11 +8,15 @@ DBConnection.prototype.resolveTarget = function(target){
 
 // items is optional, including an array of strings (or one string) will only load those types
 // not specifying items will load all items
-DBConnection.prototype.getZoneItems = function(region, items){
+DBConnection.prototype.getZoneItems = function(zone, items){
 	// with flat files, this requires the map
 }
 
 // gets everything required for the map to load
 DBConnection.prototype.getMapInfo = function(){
 	// returns map size and regions
+}
+
+DBConnection.prototype.getZoneRoutes = function(zone){
+	
 }
