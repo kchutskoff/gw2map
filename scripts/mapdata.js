@@ -31,7 +31,7 @@ function MapData(settings){
 
 	var testTriggerReady = function(){
 		for(var i = 0; i < toLoad.length; ++i){
-			if(!_loaded[tag]){
+			if(!_loaded[toLoad[i].name]){
 				return;
 			}
 		}
