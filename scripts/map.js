@@ -45,6 +45,7 @@ function fromLatLngToPoint(ll, max_zoom){
 	sin_y = bound(Math.sin(ll.lat() * (Math.PI / 180)), -0.9999, 0.9999);
 	point.x = origin.x + ll.lng() * (256 / 360);
 	point.y = origin.y + 0.5 * Math.log((1 + sin_y) / (1 - sin_y)) * -(256 / (2 * Math.PI));
+	return {x: Math.floor(point.x * tiles), y: Math.floor(point.y * tiles)};
 	return new google.maps.Point(Math.floor(point.x * tiles), Math.floor(point.y * tiles));
 }
 
@@ -55,86 +56,107 @@ function fromPointToLatLng(point, max_zoom){
 	return new google.maps.LatLng(lat, lng);
 }
 
-var dboMapRegion = {}, dboMapZone = {}, dboMapItem = {};
-
-// process URL query
-var dboMapInfo = {"size": {"x": 32768,"y": 32768}};
-var minZoom = 5;
-var maxZoom = 11;
-var mapSize = Math.max(dboMapInfo.size.x, dboMapInfo.size.y);
-var markerZoom = 9;
-var waypointZoom = 8;
-var startMapPos = {x: mapSize/2, y: mapSize/2};
-var startMapZoom = 8;
-var markersStartVisible = startMapZoom > markerZoom;
-
-// process target
-if(typeof URLquery.target != 'undefined'){
-	for(var i = 0; i < URLquery.target.length; ++i)
-	{
-		// try each target in order
-		// is it an pubid target?
-		if(URLquery.target[i] in dboPublicRegistry)
-		{
-			var entry = dboPublicRegistry[URLquery.target[i]];
-			if(entry.type == "item"){
-				var itemData = dboMapItem[entry.localid];
-				startMapPos = itemData.pos;
-				if(typeof URLquery.zoom == 'undefined'){
-					startMapZoom = maxZoom;
-				}
-				break;
-			}else if(entry.type == "zone"){
-				var zoneData = dboMapZone[entry.localid];
-				startMapPos = {x: (zoneData.area.right + zoneData.area.left) / 2, y: (zoneData.area.bottom + zoneData.area.top) / 2};
-				if(typeof URLquery.zoom == 'undefined'){
-					startMapZoom = maxZoom;
-				}
-				break;
-			}else if(entry.type == "region"){
-				var regionData = dboMapRegion[entry.localid];
-				startMapPos = regionData.label;
-				if(typeof URLquery.zoom == 'undefined'){
-					startMapZoom = maxZoom;
-				}
-				break;
-			}
-		}else
-		{
-			// position data, check if formatted as "number,number"
-			var match = URLquery.target[i].match(/(\d.*)\,(\d.*)/);
-
-			if(match){
-				var tempX = parseInt(match[1], 10);
-				var tempY = parseInt(match[2], 10);
-				if(tempX && tempY){
-					startMapPos = {x: tempX, y: tempY};
-				}
-			}
-		}
-	}
-}
-
-// process zoom
-if(typeof URLquery.zoom != 'undefined'){
-	for(var i = 0; i < URLquery.zoom.length; ++i){
-		var tempZoom = parseInt(URLquery.zoom[i]);
-		if(tempZoom && tempZoom >= minZoom && tempZoom <= maxZoom){
-			startMapZoom = tempZoom;
-			markersStartVisible = startMapZoom > markerZoom;
-			break;
-		}
-	}
-}
-
 // on page load
 $(document).ready(function(){
-	var loadStart = new Date().getTime();
-	var m = new map();
-	m.create();
+	var d = new MapData({
+		toLoad: 
+		[
+			{ name: "dboMapItem", url: "data/dboMapItem.json" },
+			{ name: "dboMapRegion", url: "data/dboMapRegion.json" },
+			{ name: "dboMapZone", url: "data/dboMapZone.json" },
+			{ name: "dboPublicRegistry", url: "data/dboPublicRegistry.json" },
+			{ name: "dboMapInfo", url: "data/dboMapInfo.json" },
+		],
+		onReady: function(){
+			var m = new Gw2Map(d);
+			m.create();
+		}
+	});		
 });
 
-function map() {
+// TODO: make this a proper class.
+
+function Gw2Map(data) {
+	// data locals
+	var dboMapInfo = data.get('dboMapInfo');
+	var dboMapZone = data.get('dboMapZone');
+	var dboMapRegion = data.get('dboMapRegion');
+	var dboMapItem = data.get('dboMapItem');
+	var dboPublicRegistry = data.get('dboPublicRegistry');
+
+	// locals
+	var minZoom = 5;
+	var maxZoom = 11;
+	
+	var markerZoom = 9;
+	var waypointZoom = 8;
+
+	var mapSize = Math.max(dboMapInfo.size.x, dboMapInfo.size.y);
+
+	var startMapPos = {x: mapSize/2, y: mapSize/2};
+	var startMapZoom = 8;
+
+	var markersStartVisible = startMapZoom > markerZoom;
+
+	// process target
+	if(typeof URLquery.target != 'undefined'){
+		for(var i = 0; i < URLquery.target.length; ++i)
+		{
+			// try each target in order
+			// is it an pubid target?
+			if(URLquery.target[i] in dboPublicRegistry)
+			{
+				var entry = dboPublicRegistry[URLquery.target[i]];
+				if(entry.type == "item"){
+					var itemData = dboMapItem[entry.localid];
+					startMapPos = itemData.pos;
+					if(typeof URLquery.zoom == 'undefined'){
+						startMapZoom = maxZoom;
+					}
+					break;
+				}else if(entry.type == "zone"){
+					var zoneData = dboMapZone[entry.localid];
+					startMapPos = {x: (zoneData.area.right + zoneData.area.left) / 2, y: (zoneData.area.bottom + zoneData.area.top) / 2};
+					if(typeof URLquery.zoom == 'undefined'){
+						startMapZoom = maxZoom;
+					}
+					break;
+				}else if(entry.type == "region"){
+					var regionData = dboMapRegion[entry.localid];
+					startMapPos = regionData.label;
+					if(typeof URLquery.zoom == 'undefined'){
+						startMapZoom = maxZoom;
+					}
+					break;
+				}
+			}else
+			{
+				// position data, check if formatted as "number,number"
+				var match = URLquery.target[i].match(/(\d.*)\,(\d.*)/);
+
+				if(match){
+					var tempX = parseInt(match[1], 10);
+					var tempY = parseInt(match[2], 10);
+					if(tempX && tempY){
+						startMapPos = {x: tempX, y: tempY};
+					}
+				}
+			}
+		}
+	}
+
+	// process zoom
+	if(typeof URLquery.zoom != 'undefined'){
+		for(var i = 0; i < URLquery.zoom.length; ++i){
+			var tempZoom = parseInt(URLquery.zoom[i]);
+			if(tempZoom && tempZoom >= minZoom && tempZoom <= maxZoom){
+				startMapZoom = tempZoom;
+				markersStartVisible = startMapZoom > markerZoom;
+				break;
+			}
+		}
+	}
+
 
 	var max_zoom = function(){
 		return maxZoom;
@@ -183,88 +205,12 @@ function map() {
 	var tile_size = new google.maps.Size(256,256);
 
 	var tyria;
-/*
-	var mists = new google.maps.ImageMapType({
-		maxZoom: 10,
-		alt: "The Mists",
-		name: "The Mists",
-		tileSize: tile_size,
-		getTileUrl: get_tile
-	});
-*/
-
-//	gmap.mapTypes.set("2",mists);
 
 	var mapMarkers = {};
 
 
 	var dboMapPaths = {}; // paths indexed by zoneid, eventually from an external file
 	// for testing
-
-
-// Organize it like a DB would in tables (or arrays of objects on a lookup-key).
-// example follows:
-
-/*
-	dboPublicRegistry[pubid] = {
-		type,
-		localid
-	}
-
-	dboMapItem[itemid] = {
-		pubid,
-		itemid,
-		zoneid (foreign),
-		type,
-		name,
-		pos{
-			x,
-			y
-		},
-		level
-	}
-
-	dboMapZone[zoneid] = {
-		pubid,
-		zoneid,
-		regionid (foreign),
-		name,
-		lavel{
-			min,
-			max
-		},
-		area{
-			top,
-			bottom,
-			left,
-			right
-		},
-		items = [] // list of items in zone, by itemid
-	}
-
-	dboMapRegion[regionid] = {
-		pubid,
-		regionid,
-		name,
-		label{
-			x,
-			y
-		},
-		zones = [] // list of zones in region, by zoneid
-	}
-
-	lookup of values via pubid is easy. Lookup type and localid via the publicRegistry. get item information from specific table
-*/
-/*
-	// declared in data file
-	var dboPublicRegistry = {};
-	var dboMapItem = {};
-	var dboMapZone = {};
-	var dboMapRegion = {};
-	var dboMapInfo = {};
-*/
-
-//	$.getJSON( "https://api.guildwars2.com/v1/map_floor.json?continent_id=1&floor=0", function( data ) {
 
 	var iconTypes = {};
 
@@ -376,8 +322,7 @@ function map() {
 			console.log(point.x + ", " + point.y);
 		});
 
-
-		loadData();
+		processData();
 		updateControls();
 	}
 
@@ -459,92 +404,76 @@ function map() {
 			}
 		}
 	}
-	function loadData() {
-		$.getJSON("data/dboMapRegion.json", function( data) {
 
-			dboMapRegion = data;
-			// for each region
+	function processData(){
+		for(var key in dboMapRegion) {
+			var region = dboMapRegion[key];
 
-			for(var key in dboMapRegion) {
-				var region = dboMapRegion[key];
+			new MapLabel({
+				map: gmap,
+				fontColor: '#d6bb70',
+				fontSize: 24,
+				fontFamily: 'Menomonia',
+				strokeWeight: 3,
+				strokeColor: '#000',
+				maxZoom: 6,
+				minZoom: 6,
+				position: toLatLng(region.label.x, region.label.y),
+				text: region.name,
+				zIndex: 100,
+			});
+		}
 
-				new MapLabel({
-					map: gmap,
-					fontColor: '#d6bb70',
-					fontSize: 24,
-					fontFamily: 'Menomonia',
-					strokeWeight: 3,
-					strokeColor: '#000',
-					maxZoom: 6,
-					minZoom: 6,
-					position: toLatLng(region.label.x, region.label.y),
-					text: region.name,
+		for(var key in dboMapZone) {
+			dboMapPaths[key] = {};
+			dboMapPaths[key]['0'] = {name: "Map Exploration"};
+		}
+		// for each zone
+		for(var key in dboMapZone){
+			var zone = dboMapZone[key];
+
+			new MapLabel({
+				map: gmap,
+				fontColor: '#d6bb70',
+				fontSize: 24,
+				fontFamily: 'Menomonia',
+				strokeWeight: 3,
+				strokeColor: '#000',
+				maxZoom: 9,
+				minZoom: 7,
+				position: toLatLng((zone.area.left + zone.area.right) / 2, (zone.area.top + zone.area.bottom) / 2),
+				text: zone.name,
+				level: zone.level.min == 0 ? null : "(" + zone.level.min + " - " + zone.level.max + ")",
+				levelColor: '#777',
+				levelSize: 20,
+				zIndex: 100,
+			});
+		}
+
+		for(var key in dboMapItem){
+			var item = dboMapItem[key];
+
+			var itemName = item.name;
+			if(item.type == 'task'){
+				itemName += String.fromCharCode(160,160) + "<font style='color:#BBB;font-size:0.9em;'>(" + item.level + ")</font>";
+			}
+
+			if(typeof iconTypes[item.type] != 'undefined'){
+				var tempMarker = new google.maps.Marker({
+					position: toLatLng(item.pos.x, item.pos.y),
+					draggable: false,
+					icon: iconTypes[item.type],
+					mapItem: item,
 					zIndex: 100,
 				});
+
+				google.maps.event.addListener(tempMarker, "mouseover", makeOverFunc(tempMarker));
+				google.maps.event.addListener(tempMarker, "mouseout", makeOutFunc(tempMarker));
+				google.maps.event.addListener(tempMarker, "click", makeClickFunc(tempMarker));
+
+				mapMarkers[item.type].push(tempMarker);
 			}
-		});
-
-		$.getJSON( "data/dboMapZone.json", function( data ) {
-			dboMapZone = data;
-
-			for(var key in dboMapZone) {
-				dboMapPaths[key] = {};
-				dboMapPaths[key]['0'] = {name: "Map Exploration"};
-			}
-			// for each zone
-			for(var key in dboMapZone){
-				var zone = dboMapZone[key];
-
-				new MapLabel({
-					map: gmap,
-					fontColor: '#d6bb70',
-					fontSize: 24,
-					fontFamily: 'Menomonia',
-					strokeWeight: 3,
-					strokeColor: '#000',
-					maxZoom: 9,
-					minZoom: 7,
-					position: toLatLng((zone.area.left + zone.area.right) / 2, (zone.area.top + zone.area.bottom) / 2),
-					text: zone.name,
-					level: zone.level.min == 0 ? null : "(" + zone.level.min + " - " + zone.level.max + ")",
-					levelColor: '#777',
-					levelSize: 20,
-					zIndex: 100,
-				});
-			}
-			//updateCurrentZone();
-
-		});
-
-		$.getJSON( "data/dboMapItem.json", function( data ) {
-			dboMapItem = data;
-
-			// for each item
-			for(var key in dboMapItem){
-				var item = dboMapItem[key];
-
-				var itemName = item.name;
-				if(item.type == 'task'){
-					itemName += String.fromCharCode(160,160) + "<font style='color:#BBB;font-size:0.9em;'>(" + item.level + ")</font>";
-				}
-
-				if(typeof iconTypes[item.type] != 'undefined'){
-					var tempMarker = new google.maps.Marker({
-						position: toLatLng(item.pos.x, item.pos.y),
-						draggable: false,
-						icon: iconTypes[item.type],
-						mapItem: item,
-						zIndex: 100,
-					});
-
-					google.maps.event.addListener(tempMarker, "mouseover", makeOverFunc(tempMarker));
-					google.maps.event.addListener(tempMarker, "mouseout", makeOutFunc(tempMarker));
-					google.maps.event.addListener(tempMarker, "click", makeClickFunc(tempMarker));
-
-					mapMarkers[item.type].push(tempMarker);
-				}
-			}
-		});
+		}
 	}
 
 	var MarkerMan;
