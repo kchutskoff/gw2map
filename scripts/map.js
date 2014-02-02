@@ -70,6 +70,7 @@ $(document).ready(function(){
 			{ name: "dboMapZone", url: "data/dboMapZone.json" },
 			{ name: "dboPublicRegistry", url: "data/dboPublicRegistry.json" },
 			{ name: "dboMapInfo", url: "data/dboMapInfo.json" },
+			{ name: "dboPoints", url: "data/dboPoints.json" },
 		],
 		onReady: function(){
 			gw2map.dataLoaded(d);
@@ -382,6 +383,7 @@ function Gw2Map() {
 		dboMapRegion = data.get('dboMapRegion');
 		dboMapItem = data.get('dboMapItem');
 		dboPublicRegistry = data.get('dboPublicRegistry');
+		dboPoints = data.get('dboPoints');
 		processData();
 
 		readyToStart();
@@ -525,6 +527,51 @@ function Gw2Map() {
 				mapMarkers[item.type].push(tempMarker);
 			}
 		}
+
+		var pathStyleNormal = {
+			editable: false,
+			map: gmap,
+			suppressUndo: true,
+			zIndex: 9,
+			strokeOpacity: 1,
+			strokeWeight: 3,
+			strokeColor: '#4F4',
+		};
+
+		var pathStyleUnderground = {
+			editable: false,
+			map: gmap,
+			suppressUndo: true,
+			zIndex: 9,
+			strokeOpacity: 0,
+			strokeWeight: 2,
+			strokeColor: '#F62',
+			icons:  [{
+				icon: {
+					path: 'M 1,-2 1,2 -1,2 -1,-2 z',
+					fillOpacity: 1,
+					strokeWeight: 0,
+				},
+				offset: '0px',
+				repeat: '12px',
+			}],
+		};
+
+		for (key in dboPoints) {
+			var line = dboPoints[key];
+			var verts = [];
+			for (vertkey in line.vertices) {
+				var vert = line.vertices[vertkey];
+				verts.push({
+								pos: p2ll(new google.maps.Point(vert.x, vert.y)),
+								type: vert.type,
+							});
+			}
+			myPath = new MapPath(gmap, {
+				types: [pathStyleNormal, pathStyleUnderground],
+				vertices: verts
+			});
+		}
 	}
 
 	var MarkerMan;
@@ -641,64 +688,5 @@ function Gw2Map() {
 			//$('#map_title').hide();
 		}
 	};
-
-
-	// testing path stuff
-	function createTestPath() {
-		var pathStyleNormal = {
-			editable: false,
-			map: gmap,
-			suppressUndo: true,
-			zIndex: 9,
-			strokeOpacity: 1,
-			strokeWeight: 3,
-			strokeColor: '#4F4',
-		};
-
-		var pathStyleUnderground = {
-			editable: false,
-			map: gmap,
-			suppressUndo: true,
-			zIndex: 9,
-			strokeOpacity: 0,
-			strokeWeight: 2,
-			strokeColor: '#F62',
-			icons:  [{
-				icon: {
-					path: 'M 1,-2 1,2 -1,2 -1,-2 z',
-					fillOpacity: 1,
-					strokeWeight: 0,
-				},
-				offset: '0px',
-				repeat: '12px',
-			}],
-		};
-
-		var myPath = new MapPath(gmap, {
-			types: [pathStyleNormal, pathStyleUnderground],
-			vertices: [
-				{
-					pos: p2ll(new google.maps.Point(4000,4000)),
-					type: 0,
-				},
-				{
-					pos: p2ll(new google.maps.Point(6000,6000)),
-					type: 0,
-				},
-				{
-					pos: p2ll(new google.maps.Point(12000,7000)),
-					type: 1,
-				},
-				{
-					pos: p2ll(new google.maps.Point(9000,10000)),
-					type: 0,
-				},
-				{
-					pos: p2ll(new google.maps.Point(10000,11000)),
-					type: 0,
-				},
-			],
-		});
-	}
 
 };
