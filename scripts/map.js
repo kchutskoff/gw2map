@@ -55,7 +55,10 @@ function fromPointToLatLng(point, max_zoom){
 	return new google.maps.LatLng(lat, lng);
 }
 
+var dboMapRegion = {}, dboMapZone = {}, dboMapItem = {};
+
 // process URL query
+var dboMapInfo = {"size": {"x": 32768,"y": 32768}};
 var minZoom = 5;
 var maxZoom = 11;
 var mapSize = Math.max(dboMapInfo.size.x, dboMapInfo.size.y);
@@ -106,7 +109,7 @@ if(typeof URLquery.target != 'undefined'){
 				var tempY = parseInt(match[2], 10);
 				if(tempX && tempY){
 					startMapPos = {x: tempX, y: tempY};
-				}	
+				}
 			}
 		}
 	}
@@ -126,8 +129,12 @@ if(typeof URLquery.zoom != 'undefined'){
 
 // on page load
 $(document).ready(function(){
-
 	var loadStart = new Date().getTime();
+	var m = new map();
+	m.create();
+});
+
+function map() {
 
 	var max_zoom = function(){
 		return maxZoom;
@@ -149,31 +156,12 @@ $(document).ready(function(){
 	}
 
 // Map Declaration
-	var gmap = new google.maps.Map(document.getElementById("gw2map") , {
-		disableDoubleClickZoom: true,
-		zoom: startMapZoom,
-		minZoom: minZoom,
-		maxZoom: maxZoom,
-		center: toLatLng(startMapPos.x, startMapPos.y),
-		streetViewControl: false,
-		mapTypeControl: false,
-		zoomControlOptions: {
-			position: google.maps.ControlPosition.RIGHT_BOTTOM,
-		},
-		panControl: false,
-		backgroundColor: '#000',
-		mapTypeId: "1", // string for gmaps' sake
-//		mapTypeControlOptions: {
-//			mapTypeIds: ["1","2"]
-//		}
-	});
+	var gmap;
+
 
 // to translate map coordinates to pixel coordinates to display the mouse-over div for map items
 
-	var pixelOverlay = new google.maps.OverlayView();
-	pixelOverlay.draw = function(){};
-	pixelOverlay.setMap(gmap);
-
+	var pixelOverlay;
 // functions to drive the map
 
 
@@ -194,14 +182,8 @@ $(document).ready(function(){
 
 	var tile_size = new google.maps.Size(256,256);
 
-	var tyria = new google.maps.ImageMapType({
-		maxZoom: 11,
-		alt: "Tyria",
-		name: "Tyria",
-		tileSize: tile_size,
-		getTileUrl: get_tile
-	});
-/*		
+	var tyria;
+/*
 	var mists = new google.maps.ImageMapType({
 		maxZoom: 10,
 		alt: "The Mists",
@@ -210,22 +192,15 @@ $(document).ready(function(){
 		getTileUrl: get_tile
 	});
 */
-	gmap.mapTypes.set("1",tyria);
+
 //	gmap.mapTypes.set("2",mists);
 
 	var mapMarkers = {};
-	mapMarkers['waypoint'] = new Array();
-	mapMarkers['landmark'] = new Array();
-	mapMarkers['task'] = new Array();
-	mapMarkers['skill'] = new Array();
-	mapMarkers['vista'] = new Array();
+
 
 	var dboMapPaths = {}; // paths indexed by zoneid, eventually from an external file
 	// for testing
-	for(var key in dboMapZone){
-		dboMapPaths[key] = {};
-		dboMapPaths[key]['0'] = {name: "Map Exploration"};
-	}
+
 
 // Organize it like a DB would in tables (or arrays of objects on a lookup-key).
 // example follows:
@@ -293,41 +268,119 @@ $(document).ready(function(){
 
 	var iconTypes = {};
 
-	iconTypes["waypoint"] = {
-		url: "images/icon_waypoint.png",
-		anchor: new google.maps.Point(14,14),
-		scaledSize: new google.maps.Size(28,28),
-	};
+	this.create = function() {
+		gmap = new google.maps.Map(document.getElementById("gw2map") , {
+			disableDoubleClickZoom: true,
+			zoom: startMapZoom,
+			minZoom: minZoom,
+			maxZoom: maxZoom,
+			center: toLatLng(startMapPos.x, startMapPos.y),
+			streetViewControl: false,
+			mapTypeControl: false,
+			zoomControlOptions: {
+				position: google.maps.ControlPosition.RIGHT_BOTTOM,
+			},
+			panControl: false,
+			backgroundColor: '#000',
+			mapTypeId: "1", // string for gmaps' sake
+	//		mapTypeControlOptions: {
+	//			mapTypeIds: ["1","2"]
+	//		}
+		});
 
-	iconTypes["waypointHover"] = {
-		url: "images/icon_waypoint_hover.png",
-		anchor: new google.maps.Point(14,14),
-		scaledSize: new google.maps.Size(28,28),
-	};
+		pixelOverlay = new google.maps.OverlayView();
+		pixelOverlay.draw = function(){};
+		pixelOverlay.setMap(gmap);
 
-	iconTypes["landmark"] = {
-		url: "images/icon_POI.png",
-		anchor: new google.maps.Point(11,11),
-		scaledSize: new google.maps.Size(22,22),
-	};
+		tyria = new google.maps.ImageMapType({
+			maxZoom: 11,
+			alt: "Tyria",
+			name: "Tyria",
+			tileSize: tile_size,
+			getTileUrl: get_tile
+		});
+		gmap.mapTypes.set("1",tyria);
 
-	iconTypes["vista"] = {
-		url: "images/icon_vista.png",
-		anchor: new google.maps.Point(11,11),
-		scaledSize: new google.maps.Size(22,22),
-	};
+		mapMarkers['waypoint'] = new Array();
+		mapMarkers['landmark'] = new Array();
+		mapMarkers['task'] = new Array();
+		mapMarkers['skill'] = new Array();
+		mapMarkers['vista'] = new Array();
 
-	iconTypes["skill"] = {
-		url: "images/icon_skillpoint.png",
-		anchor: new google.maps.Point(11,11),
-		scaledSize: new google.maps.Size(22,22),
-	};
+		iconTypes["waypoint"] = {
+			url: "images/icon_waypoint.png",
+			anchor: new google.maps.Point(14,14),
+			scaledSize: new google.maps.Size(28,28),
+		};
 
-	iconTypes["task"] = {
-		url: "images/icon_heart.png",
-		anchor: new google.maps.Point(11,11),
-		scaledSize: new google.maps.Size(22,22),
-	};
+		iconTypes["waypointHover"] = {
+			url: "images/icon_waypoint_hover.png",
+			anchor: new google.maps.Point(14,14),
+			scaledSize: new google.maps.Size(28,28),
+		};
+
+		iconTypes["landmark"] = {
+			url: "images/icon_POI.png",
+			anchor: new google.maps.Point(11,11),
+			scaledSize: new google.maps.Size(22,22),
+		};
+
+		iconTypes["vista"] = {
+			url: "images/icon_vista.png",
+			anchor: new google.maps.Point(11,11),
+			scaledSize: new google.maps.Size(22,22),
+		};
+
+		iconTypes["skill"] = {
+			url: "images/icon_skillpoint.png",
+			anchor: new google.maps.Point(11,11),
+			scaledSize: new google.maps.Size(22,22),
+		};
+
+		iconTypes["task"] = {
+			url: "images/icon_heart.png",
+			anchor: new google.maps.Point(11,11),
+			scaledSize: new google.maps.Size(22,22),
+		};
+
+		MarkerMan = new MarkerManager(gmap, {borderPadding: 0});
+		google.maps.event.addListener(MarkerMan, 'loaded', function(){
+			for(var key in mapMarkers){
+				if(key == 'waypoint'){
+					MarkerMan.addMarkers(mapMarkers[key], waypointZoom);
+				}else{
+					MarkerMan.addMarkers(mapMarkers[key], markerZoom);
+				}
+
+			}
+			MarkerMan.refresh();
+		});
+
+		$('#map_title').hide();
+
+		//google.maps.event.addListener(gmap, 'center_changed', updateCurrentZone);
+		google.maps.event.addListener(gmap, 'dblclick', function(e){
+			var p = ll2p(e.latLng);
+			updateCurrentZone(p);
+		});
+
+		google.maps.event.addListenerOnce(gmap, 'idle', function(){
+			ShowUI();
+			// need to resize to have the whole map show
+			google.maps.event.trigger(gmap, 'resize');
+			gmap.setCenter(toLatLng(startMapPos.x, startMapPos.y));
+		});
+
+		google.maps.event.addListener(gmap, 'rightclick', function(e){
+			var point = ll2p(e.latLng);
+			console.log(point.x + ", " + point.y);
+		});
+
+
+		loadData();
+		updateControls();
+	}
+
 
 	function makeOverFunc(target){
 		return function(e){
@@ -350,7 +403,7 @@ $(document).ready(function(){
 			var proj = pixelOverlay.getProjection();
 			var pixel = proj.fromLatLngToContainerPixel(target.getPosition());
 			var docWidth = $(window).width();
-			var floatWidth = $('#hover_window').width();			
+			var floatWidth = $('#hover_window').width();
 			// if textbox is going to overflow, flip it to go the other direction
 			if(Math.round(pixel.x) + floatWidth + 20 >= docWidth){
 				$('#hover_window').css({
@@ -364,13 +417,13 @@ $(document).ready(function(){
 				});
 			}
 
-			
-			
+
+
 		};
 	}
 
 	function makeOutFunc(target){
-		return function(e){ 
+		return function(e){
 			if(target.mapItem.type == "waypoint"){
 				target.setIcon(iconTypes['waypoint']);
 			}
@@ -400,97 +453,105 @@ $(document).ready(function(){
 				$('#dialog_window').fadeIn();
 
 				$('#dialog_window').css({
-					'left': (($(window).width() - $('#dialog_window').width())/2) + 'px', 
+					'left': (($(window).width() - $('#dialog_window').width())/2) + 'px',
 					'top': (($(window).height() - $('#dialog_window').height())/2) + 'px'
 				});
 			}
 		}
 	}
+	function loadData() {
+		$.getJSON("data/dboMapRegion.json", function( data) {
 
-	// for each region
+			dboMapRegion = data;
+			// for each region
 
-	for(var key in dboMapRegion){
-		var region = dboMapRegion[key];
+			for(var key in dboMapRegion) {
+				var region = dboMapRegion[key];
 
-		new MapLabel({
-			map: gmap,
-			fontColor: '#d6bb70',
-			fontSize: 24,
-			fontFamily: 'Menomonia',
-			strokeWeight: 3,
-			strokeColor: '#000',
-			maxZoom: 6,
-			minZoom: 6,
-			position: toLatLng(region.label.x, region.label.y),
-			text: region.name,
-			zIndex: 100,
-		});
-	}
-
-	// for each zone
-	for(var key in dboMapZone){
-		var zone = dboMapZone[key];
-
-		new MapLabel({
-			map: gmap,
-			fontColor: '#d6bb70',
-			fontSize: 24,
-			fontFamily: 'Menomonia',
-			strokeWeight: 3,
-			strokeColor: '#000',
-			maxZoom: 9,
-			minZoom: 7,
-			position: toLatLng((zone.area.left + zone.area.right) / 2, (zone.area.top + zone.area.bottom) / 2),
-			text: zone.name,
-			level: zone.level.min == 0 ? null : "(" + zone.level.min + " - " + zone.level.max + ")",
-			levelColor: '#777',
-			levelSize: 20,
-			zIndex: 100,
-		});
-	}
-
-	// for each item
-	for(var key in dboMapItem){
-		var item = dboMapItem[key];
-
-		var itemName = item.name;
-		if(item.type == 'task'){
-			itemName += String.fromCharCode(160,160) + "<font style='color:#BBB;font-size:0.9em;'>(" + item.level + ")</font>";
-		}
-
-		if(typeof iconTypes[item.type] != 'undefined'){
-			tempMarker = new google.maps.Marker({
-				position: toLatLng(item.pos.x, item.pos.y),
-				draggable: false,
-				icon: iconTypes[item.type],
-				mapItem: item,
-				zIndex: 100,
-			});
-
-			google.maps.event.addListener(tempMarker, "mouseover", makeOverFunc(tempMarker));
-			google.maps.event.addListener(tempMarker, "mouseout", makeOutFunc(tempMarker));
-			google.maps.event.addListener(tempMarker, "click", makeClickFunc(tempMarker));
-
-			mapMarkers[item.type].push(tempMarker);
-		}
-	}
-
-	var MarkerMan = new MarkerManager(gmap, {borderPadding: 0});
-	google.maps.event.addListener(MarkerMan, 'loaded', function(){
-		for(var key in mapMarkers){
-			if(key == 'waypoint'){
-				MarkerMan.addMarkers(mapMarkers[key], waypointZoom);
-			}else{
-				MarkerMan.addMarkers(mapMarkers[key], markerZoom);
+				new MapLabel({
+					map: gmap,
+					fontColor: '#d6bb70',
+					fontSize: 24,
+					fontFamily: 'Menomonia',
+					strokeWeight: 3,
+					strokeColor: '#000',
+					maxZoom: 6,
+					minZoom: 6,
+					position: toLatLng(region.label.x, region.label.y),
+					text: region.name,
+					zIndex: 100,
+				});
 			}
-			
-		}
-		MarkerMan.refresh();
-	});
+		});
+
+		$.getJSON( "data/dboMapZone.json", function( data ) {
+			dboMapZone = data;
+
+			for(var key in dboMapZone) {
+				dboMapPaths[key] = {};
+				dboMapPaths[key]['0'] = {name: "Map Exploration"};
+			}
+			// for each zone
+			for(var key in dboMapZone){
+				var zone = dboMapZone[key];
+
+				new MapLabel({
+					map: gmap,
+					fontColor: '#d6bb70',
+					fontSize: 24,
+					fontFamily: 'Menomonia',
+					strokeWeight: 3,
+					strokeColor: '#000',
+					maxZoom: 9,
+					minZoom: 7,
+					position: toLatLng((zone.area.left + zone.area.right) / 2, (zone.area.top + zone.area.bottom) / 2),
+					text: zone.name,
+					level: zone.level.min == 0 ? null : "(" + zone.level.min + " - " + zone.level.max + ")",
+					levelColor: '#777',
+					levelSize: 20,
+					zIndex: 100,
+				});
+			}
+			//updateCurrentZone();
+
+		});
+
+		$.getJSON( "data/dboMapItem.json", function( data ) {
+			dboMapItem = data;
+
+			// for each item
+			for(var key in dboMapItem){
+				var item = dboMapItem[key];
+
+				var itemName = item.name;
+				if(item.type == 'task'){
+					itemName += String.fromCharCode(160,160) + "<font style='color:#BBB;font-size:0.9em;'>(" + item.level + ")</font>";
+				}
+
+				if(typeof iconTypes[item.type] != 'undefined'){
+					var tempMarker = new google.maps.Marker({
+						position: toLatLng(item.pos.x, item.pos.y),
+						draggable: false,
+						icon: iconTypes[item.type],
+						mapItem: item,
+						zIndex: 100,
+					});
+
+					google.maps.event.addListener(tempMarker, "mouseover", makeOverFunc(tempMarker));
+					google.maps.event.addListener(tempMarker, "mouseout", makeOutFunc(tempMarker));
+					google.maps.event.addListener(tempMarker, "click", makeClickFunc(tempMarker));
+
+					mapMarkers[item.type].push(tempMarker);
+				}
+			}
+		});
+	}
+
+	var MarkerMan;
 
 	// map center
 	// hold map in place
-	google.maps.event.addListener(gmap, 'center_changed', function(){
+	/*google.maps.event.addListener(gmap, 'center_changed', function(){
 		var bounds = gmap.getBounds();
 		var ne = ll2p(bounds.getNorthEast());
 		var sw = ll2p(bounds.getSouthWest());
@@ -530,10 +591,10 @@ $(document).ready(function(){
 		if(force == true){
 			//console.log("set center: " + pos.x + ", " + pos.y);
 			gmap.setCenter(p2ll(pos));
-			
+
 		}
 
-	});
+	});*/
 
 	// detect zone stuff
 
@@ -570,12 +631,8 @@ $(document).ready(function(){
 		}
 	}
 
-	updateControls();
-
-	$('#map_title').hide();
-
 	function updateCurrentZone(p){
-		if(currentZone == null || 
+		if(currentZone == null ||
 			(
 				currentZone.area.top >= p.y ||
 				currentZone.area.bottom <= p.y ||
@@ -602,89 +659,66 @@ $(document).ready(function(){
 			//currentZone = null;
 			//updateControls();
 			//$('#map_title').hide();
-		}	
+		}
 	};
 
-	//updateCurrentZone(startMapPos);
-
-	google.maps.event.addListener(gmap, 'dblclick', function(e){
-		var p = ll2p(e.latLng);
-		updateCurrentZone(p);
-	});
-
-	//google.maps.event.addListener(gmap, 'center_changed', updateCurrentZone)
 
 	// testing path stuff
+	function createTestPath() {
+		var pathStyleNormal = {
+			editable: false,
+			map: gmap,
+			suppressUndo: true,
+			zIndex: 9,
+			strokeOpacity: 1,
+			strokeWeight: 3,
+			strokeColor: '#4F4',
+		};
 
-	var pathStyleNormal = {
-		editable: false,
-		map: gmap,
-		suppressUndo: true,
-		zIndex: 9,
-		strokeOpacity: 1,
-		strokeWeight: 3,
-		strokeColor: '#4F4',
-	};
+		var pathStyleUnderground = {
+			editable: false,
+			map: gmap,
+			suppressUndo: true,
+			zIndex: 9,
+			strokeOpacity: 0,
+			strokeWeight: 2,
+			strokeColor: '#F62',
+			icons:  [{
+				icon: {
+					path: 'M 1,-2 1,2 -1,2 -1,-2 z',
+					fillOpacity: 1,
+					strokeWeight: 0,
+				},
+				offset: '0px',
+				repeat: '12px',
+			}],
+		};
 
-	var pathStyleUnderground = {
-		editable: false,
-		map: gmap,
-		suppressUndo: true,
-		zIndex: 9,
-		strokeOpacity: 0,
-		strokeWeight: 2,
-		strokeColor: '#F62',
-		icons:  [{
-	    	icon: {
-			    path: 'M 1,-2 1,2 -1,2 -1,-2 z',
-			    fillOpacity: 1,
-			    strokeWeight: 0,
-		  	},
-	    	offset: '0px',
-	    	repeat: '12px',
-	    }],
-	};
+		var myPath = new MapPath(gmap, {
+			types: [pathStyleNormal, pathStyleUnderground],
+			vertices: [
+				{
+					pos: p2ll(new google.maps.Point(4000,4000)),
+					type: 0,
+				},
+				{
+					pos: p2ll(new google.maps.Point(6000,6000)),
+					type: 0,
+				},
+				{
+					pos: p2ll(new google.maps.Point(12000,7000)),
+					type: 1,
+				},
+				{
+					pos: p2ll(new google.maps.Point(9000,10000)),
+					type: 0,
+				},
+				{
+					pos: p2ll(new google.maps.Point(10000,11000)),
+					type: 0,
+				},
+			],
+		});
+	}
 
-	var myPath = new MapPath(gmap, {
-		types: [pathStyleNormal, pathStyleUnderground],
-		vertices: [
-			{
-				pos: p2ll(new google.maps.Point(4000,4000)),
-				type: 0,
-			},
-			{
-				pos: p2ll(new google.maps.Point(6000,6000)),
-				type: 0,
-			},
-			{
-				pos: p2ll(new google.maps.Point(12000,7000)),
-				type: 1,
-			},
-			{
-				pos: p2ll(new google.maps.Point(9000,10000)),
-				type: 0,
-			},
-			{
-				pos: p2ll(new google.maps.Point(10000,11000)),
-				type: 0,
-			},
-		],
-	});   	
-
-	
-	//ShowUI();
-
-	google.maps.event.addListener(gmap, 'rightclick', function(e){
-		var point = ll2p(e.latLng);
-		console.log(point.x + ", " + point.y);
-	});
-
-	// once the map loads, show everything
-	google.maps.event.addListenerOnce(gmap, 'idle', function(){
-		ShowUI();
-		// need to resize to have the whole map show
-		google.maps.event.trigger(gmap, 'resize');
-		gmap.setCenter(toLatLng(startMapPos.x, startMapPos.y));
-	});
-
-});
+};
