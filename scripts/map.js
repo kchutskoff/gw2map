@@ -55,7 +55,10 @@ function fromPointToLatLng(point, max_zoom){
 	return new google.maps.LatLng(lat, lng);
 }
 
+var dboMapRegion = {}, dboMapZone = {}, dboMapItem = {};
+
 // process URL query
+var dboMapInfo = {"size": {"x": 32768,"y": 32768}};
 var minZoom = 5;
 var maxZoom = 11;
 var mapSize = Math.max(dboMapInfo.size.x, dboMapInfo.size.y);
@@ -230,10 +233,7 @@ $(document).ready(function(){
 
 	var dboMapPaths = {}; // paths indexed by zoneid, eventually from an external file
 	// for testing
-	for(var key in dboMapZone){
-		dboMapPaths[key] = {};
-		dboMapPaths[key]['0'] = {name: "Map Exploration"};
-	}
+
 
 // Organize it like a DB would in tables (or arrays of objects on a lookup-key).
 // example follows:
@@ -415,73 +415,93 @@ $(document).ready(function(){
 		}
 	}
 
-	// for each region
+	$.getJSON("data/dboMapRegion.json", function( data) {
 
-	for(var key in dboMapRegion){
-		var region = dboMapRegion[key];
+		dboMapRegion = data;
+		// for each region
 
-		new MapLabel({
-			map: gmap,
-			fontColor: '#d6bb70',
-			fontSize: 24,
-			fontFamily: 'Menomonia',
-			strokeWeight: 3,
-			strokeColor: '#000',
-			maxZoom: 6,
-			minZoom: 6,
-			position: toLatLng(region.label.x, region.label.y),
-			text: region.name,
-			zIndex: 100,
-		});
-	}
+		for(var key in dboMapRegion) {
+			var region = dboMapRegion[key];
 
-	// for each zone
-	for(var key in dboMapZone){
-		var zone = dboMapZone[key];
-
-		new MapLabel({
-			map: gmap,
-			fontColor: '#d6bb70',
-			fontSize: 24,
-			fontFamily: 'Menomonia',
-			strokeWeight: 3,
-			strokeColor: '#000',
-			maxZoom: 9,
-			minZoom: 7,
-			position: toLatLng((zone.area.left + zone.area.right) / 2, (zone.area.top + zone.area.bottom) / 2),
-			text: zone.name,
-			level: zone.level.min == 0 ? null : "(" + zone.level.min + " - " + zone.level.max + ")",
-			levelColor: '#777',
-			levelSize: 20,
-			zIndex: 100,
-		});
-	}
-
-	// for each item
-	for(var key in dboMapItem){
-		var item = dboMapItem[key];
-
-		var itemName = item.name;
-		if(item.type == 'task'){
-			itemName += String.fromCharCode(160,160) + "<font style='color:#BBB;font-size:0.9em;'>(" + item.level + ")</font>";
-		}
-
-		if(typeof iconTypes[item.type] != 'undefined'){
-			tempMarker = new google.maps.Marker({
-				position: toLatLng(item.pos.x, item.pos.y),
-				draggable: false,
-				icon: iconTypes[item.type],
-				mapItem: item,
+			new MapLabel({
+				map: gmap,
+				fontColor: '#d6bb70',
+				fontSize: 24,
+				fontFamily: 'Menomonia',
+				strokeWeight: 3,
+				strokeColor: '#000',
+				maxZoom: 6,
+				minZoom: 6,
+				position: toLatLng(region.label.x, region.label.y),
+				text: region.name,
 				zIndex: 100,
 			});
-
-			google.maps.event.addListener(tempMarker, "mouseover", makeOverFunc(tempMarker));
-			google.maps.event.addListener(tempMarker, "mouseout", makeOutFunc(tempMarker));
-			google.maps.event.addListener(tempMarker, "click", makeClickFunc(tempMarker));
-
-			mapMarkers[item.type].push(tempMarker);
 		}
-	}
+	});
+
+	$.getJSON( "data/dboMapZone.json", function( data ) {
+		dboMapZone = data;
+
+		for(var key in dboMapZone) {
+			dboMapPaths[key] = {};
+			dboMapPaths[key]['0'] = {name: "Map Exploration"};
+		}
+		// for each zone
+		for(var key in dboMapZone){
+			var zone = dboMapZone[key];
+
+			new MapLabel({
+				map: gmap,
+				fontColor: '#d6bb70',
+				fontSize: 24,
+				fontFamily: 'Menomonia',
+				strokeWeight: 3,
+				strokeColor: '#000',
+				maxZoom: 9,
+				minZoom: 7,
+				position: toLatLng((zone.area.left + zone.area.right) / 2, (zone.area.top + zone.area.bottom) / 2),
+				text: zone.name,
+				level: zone.level.min == 0 ? null : "(" + zone.level.min + " - " + zone.level.max + ")",
+				levelColor: '#777',
+				levelSize: 20,
+				zIndex: 100,
+			});
+		}
+		updateCurrentZone();
+
+	});
+
+	$.getJSON( "data/dboMapItem.json", function( data ) {
+		dboMapItem = data;
+
+		// for each item
+		for(var key in dboMapItem){
+			var item = dboMapItem[key];
+
+			var itemName = item.name;
+			if(item.type == 'task'){
+				itemName += String.fromCharCode(160,160) + "<font style='color:#BBB;font-size:0.9em;'>(" + item.level + ")</font>";
+			}
+
+			if(typeof iconTypes[item.type] != 'undefined'){
+				tempMarker = new google.maps.Marker({
+					position: toLatLng(item.pos.x, item.pos.y),
+					draggable: false,
+					icon: iconTypes[item.type],
+					mapItem: item,
+					zIndex: 100,
+				});
+
+				google.maps.event.addListener(tempMarker, "mouseover", makeOverFunc(tempMarker));
+				google.maps.event.addListener(tempMarker, "mouseout", makeOutFunc(tempMarker));
+				google.maps.event.addListener(tempMarker, "click", makeClickFunc(tempMarker));
+
+				mapMarkers[item.type].push(tempMarker);
+			}
+		}
+	});
+
+
 
 	var MarkerMan = new MarkerManager(gmap, {borderPadding: 0});
 	google.maps.event.addListener(MarkerMan, 'loaded', function(){
@@ -606,9 +626,7 @@ $(document).ready(function(){
 		}	
 	};
 
-	updateCurrentZone();
-
-	google.maps.event.addListener(gmap, 'center_changed', updateCurrentZone)
+	google.maps.event.addListener(gmap, 'center_changed', updateCurrentZone);
 
 	// testing path stuff
 
