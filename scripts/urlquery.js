@@ -1,5 +1,5 @@
 // get URL query parameters
-var URLquery = function(){
+function loadQuerry(){
 	var out = {};
 	var q = window.location.search.substring(1).split('&');
 	for (var i = 0; i < q.length; i++) {
@@ -10,4 +10,6 @@ var URLquery = function(){
 		out[pair[0]].push(pair[1]);
 	};
 	return out;
-}();
+};
+
+var URLquery = loadQuerry();

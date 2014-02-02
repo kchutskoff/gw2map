@@ -56,10 +56,12 @@ function fromPointToLatLng(point, max_zoom){
 	return new google.maps.LatLng(lat, lng);
 }
 
+var gw2map;
+
 // on page load
 $(document).ready(function(){
-	var m = new Gw2Map();
-	m.create();
+	gw2map = new Gw2Map();
+	gw2map.create();
 	var d = new MapData({
 		toLoad:
 		[
@@ -70,7 +72,7 @@ $(document).ready(function(){
 			{ name: "dboMapInfo", url: "data/dboMapInfo.json" },
 		],
 		onReady: function(){
-			m.dataLoaded(d);
+			gw2map.dataLoaded(d);
 		}
 	});
 });
@@ -324,7 +326,9 @@ function Gw2Map() {
 		return function(e){
 			$('#dialog_title').text(target.mapItem.name);
 
-			var output = "<p>Direct Link: ?target=" +  target.mapItem.pubid + "</p>";
+			var url = window.location.pathname + "?target=" + target.mapItem.pubid;
+
+			var output = "<p>Direct Link: <a href='"+url+"' onClick='return gw2map.clickTarget(event, \""+url+"\");'>" + url + "</a></p>";
 
 			if(target.mapItem.type == "waypoint" || target.mapItem.type == "landmark"){
 				output += "<p>Chat Code: " + toChatCode(target.mapItem.itemid).replace('&', '&amp;') + "</p>";
@@ -345,6 +349,21 @@ function Gw2Map() {
 			}
 		}
 	}
+
+	function gotoTarget(target) {
+		window.history.pushState({},"", target);
+		URLquery = loadQuerry();
+		processTarget();
+	}
+
+	this.clickTarget = function(event, target) {
+		if (event.button != 0) {
+			return true;
+		}
+		gotoTarget(target);
+		return false;
+	}
+
 
 	var startCount = 0;
 	function readyToStart() {
