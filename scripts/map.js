@@ -406,6 +406,7 @@ function Gw2Map() {
 					if(entry.type == "item"){
 						var itemData = dboMapItem[entry.localid];
 						pos = itemData.pos;
+						UpdateTitle(itemData.name);
 						if(typeof URLquery.zoom == 'undefined'){
 							zoom = maxZoom;
 						}
@@ -413,6 +414,7 @@ function Gw2Map() {
 					}else if(entry.type == "zone"){
 						var zoneData = dboMapZone[entry.localid];
 						pos = {x: (zoneData.area.right + zoneData.area.left) / 2, y: (zoneData.area.bottom + zoneData.area.top) / 2};
+						UpdateTitle(zoneData.name);
 						if(typeof URLquery.zoom == 'undefined'){
 							zoom = maxZoom;
 						}
@@ -420,6 +422,7 @@ function Gw2Map() {
 					}else if(entry.type == "region"){
 						var regionData = dboMapRegion[entry.localid];
 						pos = regionData.label;
+						UpdateTitle(regionData.name);
 						if(typeof URLquery.zoom == 'undefined'){
 							zoom = maxZoom;
 						}
@@ -439,8 +442,12 @@ function Gw2Map() {
 					}
 				}
 			}
+		}
+		if(typeof pos.x !== 'undefined' && typeof pos.y !== 'undefined')
+		{
 			gmap.setCenter(toLatLng(pos.x,pos.y));
-			gmap.setZoom(zoom);
+		}else{
+			UpdateTitle(); // set to default
 		}
 
 		// process zoom
@@ -453,6 +460,8 @@ function Gw2Map() {
 					break;
 				}
 			}
+		}
+		if(typeof zoom !== 'undefined'){
 			gmap.setZoom(zoom);
 		}
 

@@ -66,3 +66,15 @@ function AddItemToControl(name, enabled, onChange){
 	}
 
 }
+
+function UpdateTitle(string, useTag){
+	if(typeof useTag !== 'undefined' && !useTag){
+		document.title = string;
+	}else if(typeof string !== 'undefined'){
+		document.title = string + " - Gw2Traveller";
+	}else{
+		document.title = "Gw2Traveller";
+	}
+	
+	window.history.pushState({},"", window.location); // updates the title in the history
+}
