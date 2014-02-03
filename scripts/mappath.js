@@ -13,7 +13,7 @@ function MapPath(map, data) {
 	var theMap = map;
 
 	var editPath = new google.maps.Polyline({
-		editable: false,
+		editable: typeof URLquery.edit != 'undefined',
 		map: theMap,
 		suppressUndo: true,
 		zIndex: 10,
@@ -55,7 +55,6 @@ function MapPath(map, data) {
 	google.maps.event.addListener(editPath, "mouseover", function(mpe){
 		if(mpe.path == null && mpe.vertex == null && mpe.edge == null)
 		{
-			editPath.setEditable(true);
 			editPath.setOptions({strokeOpacity: 0.25});
 		}
 	});
@@ -63,7 +62,6 @@ function MapPath(map, data) {
 	google.maps.event.addListener(editPath, "mouseout", function(mpe){
 		if(mpe.path == null && mpe.vertex == null && mpe.edge == null)
 		{
-			editPath.setEditable(false);
 			editPath.setOptions({strokeOpacity: 0});
 		}
 	});
@@ -122,7 +120,7 @@ function MapPath(map, data) {
 				//console.log("Pushed last path to paths");
 				paths.push(curPath);
 			}
-		}		
+		}
 	};
 
 	this.push = function(position, type){

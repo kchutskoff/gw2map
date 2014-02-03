@@ -149,6 +149,36 @@ function Gw2Map() {
 		return "https://tiles.guildwars2.com/"+gmap.getMapTypeId()+"/1/"+actualZ+"/"+actualX+"/"+actualY+".jpg";
 	};
 
+	var pathStyleNormal = {
+		editable: false,
+		map: gmap,
+		suppressUndo: true,
+		zIndex: 9,
+		strokeOpacity: 1,
+		strokeWeight: 3,
+		strokeColor: '#4F4',
+	};
+
+	var pathStyleUnderground = {
+		editable: false,
+		map: gmap,
+		suppressUndo: true,
+		zIndex: 9,
+		strokeOpacity: 0,
+		strokeWeight: 2,
+		strokeColor: '#F62',
+		icons:  [{
+			icon: {
+				path: 'M 1,-2 1,2 -1,2 -1,-2 z',
+				fillOpacity: 1,
+				strokeWeight: 0,
+			},
+			offset: '0px',
+			repeat: '12px',
+		}],
+	};
+
+
 // defining map settings
 
 	var tile_size = new google.maps.Size(256,256);
@@ -162,6 +192,9 @@ function Gw2Map() {
 	// for testing
 
 	var iconTypes = {};
+
+	var editing = false;
+	var myPath;
 
 	this.create = function() {
 		gmap = new google.maps.Map(document.getElementById("gw2map") , {
@@ -252,10 +285,21 @@ function Gw2Map() {
 
 		$('#map_title').hide();
 
-		//google.maps.event.addListener(gmap, 'center_changed', updateCurrentZone);
 		google.maps.event.addListener(gmap, 'dblclick', function(e){
 			var p = ll2p(e.latLng);
 			updateCurrentZone(p);
+			if (typeof URLquery.edit != 'undefined') {
+				if (editing) {
+					editing = false;
+				} else {
+					editing = true;
+					myPath = new MapPath(gmap, {
+						types: [pathStyleNormal, pathStyleUnderground],
+						vertices: [{pos: e.latLng, type: 0}]
+					});
+				}
+			}
+
 		});
 
 		google.maps.event.addListenerOnce(gmap, 'idle', function(){
@@ -267,6 +311,9 @@ function Gw2Map() {
 		google.maps.event.addListener(gmap, 'rightclick', function(e){
 			var point = ll2p(e.latLng);
 			console.log(point.x + ", " + point.y);
+			if (editing == true) {
+				myPath.push(e.latLng, 0);
+			}
 		});
 
 		updateControls();
@@ -539,34 +586,6 @@ function Gw2Map() {
 			}
 		}
 
-		var pathStyleNormal = {
-			editable: false,
-			map: gmap,
-			suppressUndo: true,
-			zIndex: 9,
-			strokeOpacity: 1,
-			strokeWeight: 3,
-			strokeColor: '#4F4',
-		};
-
-		var pathStyleUnderground = {
-			editable: false,
-			map: gmap,
-			suppressUndo: true,
-			zIndex: 9,
-			strokeOpacity: 0,
-			strokeWeight: 2,
-			strokeColor: '#F62',
-			icons:  [{
-				icon: {
-					path: 'M 1,-2 1,2 -1,2 -1,-2 z',
-					fillOpacity: 1,
-					strokeWeight: 0,
-				},
-				offset: '0px',
-				repeat: '12px',
-			}],
-		};
 
 		for (key in dboPoints) {
 			var line = dboPoints[key];
