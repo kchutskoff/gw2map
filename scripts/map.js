@@ -420,8 +420,11 @@ function Gw2Map() {
 		++startCount;
 		if (startCount == 2) {
 			ShowUI();
+			AddItemToControl("default", "Guild Wars 2 Traveller", 'images/icon_waypoint.png', "Double-click a zone to get started", "linear-gradient(to right, rgba(0,0,0,0) 0%, rgba(0,0,0,0.8) 100%)");
+
 			google.maps.event.trigger(gmap, 'resize');
 			gmap.setCenter(toLatLng(mapSize/2,mapSize/2));
+
 			processTarget();
 		}
 	}
@@ -660,31 +663,18 @@ function Gw2Map() {
 	var isLocked = false;
 
 	function updateControls(){
+		//RemoveAllItemsFromControl();
 		if(currentZone != null){
 			// get paths in the zone
 			if(currentZone.zoneid in dboMapPaths && dboMapPaths[currentZone.zoneid].length != 0){
 				var currentPaths = dboMapPaths[currentZone.zoneid];
-				$('#map_controls_title').text(currentZone.name);
-				$('#map_controls_subtitle').text("Exploration routes").show();
-				$('#map_controls_error').hide();
-
-				$('#map_controls_content').empty();
 				for(var key in currentPaths){
 					var path = currentPaths[key];
-
-					AddItemToControl(path.name, false, function(){console.log("Hello World");});
+					AddItemToControl(currentZone.zoneid, currentZone.name, 'images/icon_vista.png', path.name, "linear-gradient(to right, rgba(0,128,0,0) 0%, rgba(0,128,0,0.5) 100%)");
 				}
 			}else{
-				// no paths for zone
-				$('#map_controls_subtitle').hide();
-				$('#map_controls_error').text("This zone does not have any routes.").show();
+				AddItemToControl(currentZone.zoneid, currentZone.name, 'images/icon_heart.png', "There are no paths for this zone", "linear-gradient(to right, rgba(128,0,0,0) 0%, rgba(128,0,0,0.8) 100%)");
 			}
-		}else{
-
-			$('#map_controls_title').text("No Zone Selected");
-			$('#map_controls_subtitle').text("Double-click on a zone to get started")
-			$('#map_controls_error').hide();
-			$('#map_controls_content').empty();
 		}
 	}
 

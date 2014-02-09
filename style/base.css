@@ -108,24 +108,15 @@ html, body, #gw2map{
 }
 
 #map_controls{
-	min-width: 150px;
-	background-color: rgb(26,39,46);
-    background-color: rgba(26,39,46,0.8);
-	padding:  4px 10px;
-
-	border-color: rgb(0,0,0);
-	border-color: rgba(0,0,0,0.8);
-	border-top-style: solid;
-	border-right-style: solid;
-	border-bottom-style: solid;
-	border-width: 2px;
+	width: 300px;
+	padding: 0px;
 
 	color: white;
 	font-family: 'Menomonia';
 
 	position: fixed;
-	top: 60px;
-	left: 0px;
+	top: 0px;
+	right: 0px;
 	z-index: 900;
 
 	-webkit-user-select: none;
@@ -135,7 +126,44 @@ html, body, #gw2map{
 
 	cursor: default;
 	display: none;
+
+	text-shadow: 0 0 0.3em #000000,  0 0 0.3em #000000,  0 0 0.3em #000000;
 }
+
+.map_control_item_content{
+	padding-left: 50px;
+}
+
+.map_control_item:after{
+	content: "";
+	display: block;
+	height: 1px;
+	background: linear-gradient(to right, rgba(160,160,160,0) 0%, rgba(160,160,160,0.8) 10%);
+}
+
+.map_control_item h1{
+	font-size: 1.2em;
+	margin: 0px;
+	padding-top: 8px;
+	padding-right: 10px;
+	padding-bottom: 4px;
+}
+
+.map_control_item p{
+	margin: 0px;
+	padding-top: 0px;
+	padding-bottom: 5px;
+	font-style: italic;
+}
+
+.map_control_icon{
+	margin: 0px;
+	padding-top: 4px;
+	padding-left: 15px;
+	float: left;
+}
+
+
 #map_controls_title{
 	color: #FC7;
 	font-size: 1.2em;

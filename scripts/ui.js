@@ -51,20 +51,78 @@ function ShowUI(){
 	$('#map_controls').fadeIn();
 }
 
-function AddItemToControl(name, enabled, onChange){
-	var routeID = "route__" + name.replace(/\s/, '_').toLowerCase();
-	$('#map_controls_content').append(
-		'<input id="'+routeID+'" type="checkbox" value="'+(enabled ? 'true' : 'false')+'"\/>' +
-		'<label for="'+routeID+'">'+name+'<\/label>'
-	);
-	if(typeof onChange == 'function')
-	{
-		console.log("registering event");
-		$('#'+routeID).click(onChange);
+function AddItemToControl(id, title, icon, text, backgroundcolor, onclick, onhover){
+	var divID = "control_item_" + id;
+	// find if we have an old one, and update it
+	var baseNode = document.getElementById(divID);
+	var iconNode = null;
+	var titleTextNode = null;
+	var textTextNode = null;
+	if(baseNode == null){
+		// making a new one
+		baseNode = document.createElement('div');
+		baseNode.className = "map_control_item";
+		baseNode.id = divID;
+
+		if(backgroundcolor){
+			baseNode.style.background = backgroundcolor;
+		}
+
+		var iconNode = document.createElement('img');
+		iconNode.className = "map_control_icon";
+		iconNode.src = icon;
+		baseNode.appendChild(iconNode);
+
+		var contentNode = document.createElement('div');
+		contentNode.className = "map_control_item_content";
+		baseNode.appendChild(contentNode);
+
+		var titleNode = document.createElement('h1');
+		contentNode.appendChild(titleNode);
+
+		var titleTextNode = document.createTextNode(title);
+		titleNode.appendChild(titleTextNode);
+
+		var textNode = document.createElement('p');
+		contentNode.appendChild(textNode);
+
+		var textTextNode = document.createTextNode(text);
+		textNode.appendChild(textTextNode);
+
+		document.getElementById('map_controls').appendChild(baseNode);
 	}else{
-		console.log("onChange type = " + typeof onChange);
+		var iconNode = baseNode.getElementsByTagName('img')[0];
+		var titleTextNode = baseNode.getElementsByTagName('h1')[0].childNodes[0];
+		var textTextNode = baseNode.getElementsByTagName('p')[0].childNodes[0];
+
+		iconNode.src = icon;
+		titleTextNode.nodeValue = title;
+		textTextNode.nodeValue = text;
+
+		if(backgroundcolor){
+			baseNode.style.background = backgroundcolor;
+		}
 	}
 
+
+	
+
+	$()
+}
+
+function RemoveItemFromControl(id){
+	var controls = document.getElementById('map_controls');
+	var toRemove = controls.getElementById('control_itme_' + id);
+	if(toRemove){
+		controls.removeChild(toRemove);
+	}
+}
+
+function RemoveAllItemsFromControl(){
+	var controls = document.getElementById('map_controls');
+	while(controls.children.length > 0){
+		controls.removeChild(controls.firstChild);
+	}
 }
 
 function UpdateTitle(string, useTag){
