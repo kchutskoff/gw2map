@@ -144,7 +144,7 @@ function Gw2Map() {
 		var actualY = coords.y - offset;
 		var actualZ = zoom - zOffset;
 		if(actualY < 0 || actualX < 0 || actualY >= (1 << actualZ) || actualX >= (1 << actualZ)){
-			return "http://wiki-de.guildwars2.com/images/6/6f/Kartenhintergrund.png";
+			return "";
 		}
 		return "https://tiles.guildwars2.com/"+gmap.getMapTypeId()+"/1/"+actualZ+"/"+actualX+"/"+actualY+".jpg";
 	};
